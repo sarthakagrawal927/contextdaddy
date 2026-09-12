@@ -1,0 +1,14 @@
+{
+  "name": "storagedaddy-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "check": "node --test worker.test.mjs analytics.test.mjs && tsc --noEmit && wrangler deploy --dry-run",
+    "deploy": "node check-release.mjs && npm run check && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.125.0",
+    "typescript": "6.0.3"
+  }
+}

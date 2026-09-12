@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<rss xmlns:ns0="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>StorageDaddy</title>
+        <item>
+            <title>0.1.2</title>
+            <pubDate>Sat, 12 Sep 2026 22:32:02 +0530</pubDate>
+            <ns0:version>71</ns0:version>
+            <ns0:shortVersionString>0.1.2</ns0:shortVersionString>
+            <ns0:minimumSystemVersion>14.0</ns0:minimumSystemVersion>
+            <ns0:hardwareRequirements>arm64</ns0:hardwareRequirements>
+            <enclosure url="https://storagedaddy.significanthobbies.com/updates/StorageDaddy-0.1.2-build71-arm64.dmg" length="7451489" type="application/octet-stream" ns0:edSignature="RFnFqEiC/byax0Xp4QOwuHUVYzPabS7JVOKjpS3qzuKDRkdp6WcBzo9AEgH1mfuCp+encCnjibUhv2E8cRIGDA==" />
+        <description>AI Context is now labeled Beta, with expandable projects, per-agent context estimates and shared Global Skills. This update also includes saved snapshot history and the latest storage, cleanup, application and AI session improvements.</description></item>
+    </channel>
+</rss>

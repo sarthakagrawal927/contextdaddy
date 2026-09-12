@@ -1,0 +1,23 @@
+{
+  "retrieved": "2026-09-12",
+  "assets": [
+    {
+      "file": "ClaudeOfficial.png",
+      "sha256": "20eafe9635730436158b4d0a9c9419ada40069708c89620ec8773ee8ec6e5621",
+      "source": "https://www.anthropic.com/press-kit",
+      "archivePath": "Anthropic media resources/Anthropic logos/Claude logos/4 Claude icon/PNG/ClaudeIcon-Rounded.png",
+      "owner": "Anthropic PBC"
+    },
+    {
+      "file": "ChatGPTOfficial.png",
+      "sha256": "30e302b50143e1d8204e938e5a590b6eaf30b4c714fb11b39e3ea35da40bca93",
+      "source": "/Applications/ChatGPT.app/Contents/Resources/electron.icns",
+      "sourceBundleIdentifier": "com.openai.codex",
+      "sourceTeamIdentifier": "2DC432GLL2",
+      "conversion": "macOS sips ICNS to PNG at the source 1024 by 1024 pixel size",
+      "guidelines": "https://openai.com/brand/",
+      "owner": "OpenAI"
+    }
+  ],
+  "use": "Provider identification in local AI session inventory; no endorsement implied."
+}
