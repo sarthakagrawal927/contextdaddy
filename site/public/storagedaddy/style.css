@@ -47,3 +47,11 @@
 .hero-confidence{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 18px;font-size:11px;line-height:1.6;color:var(--muted);margin:0}
 .hero-confidence span+span{position:relative}.hero-confidence span+span:before{content:'·';position:absolute;left:-11px}
 @media(max-width:620px){.hero .hero-lede{font-size:16px;margin-block:20px 26px}.hero-actions{flex-direction:row;flex-wrap:nowrap;gap:10px;width:100%}.hero-actions .button{font-size:14px;padding:14px 16px;min-width:0}.hero-actions .button-primary{flex:1.2}.hero-actions .button-source{flex:1}.hero-assurance{gap:0 14px;margin-top:16px}.hero-confidence{font-size:10px;gap:6px 14px}.hero-confidence span+span:before{left:-9px}}
+
+/* Public analytics reuses the existing App Health report and landing tokens. */
+.live-analytics-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:28px}
+.live-analytics-heading h2{margin:10px 0 16px}.live-analytics-heading p:not(.eyebrow){color:var(--muted);max-width:52ch;line-height:1.65}.live-analytics-heading .text-link{flex-shrink:0;min-height:44px;display:inline-flex;align-items:center;gap:8px}
+.live-analytics-frame{display:block;width:100%;height:960px;border:1px solid rgba(196,230,210,.16);border-radius:16px;background:#09090b;color-scheme:dark}
+.live-analytics-note{color:var(--muted);font-size:12px;line-height:1.7;max-width:80ch;margin:16px 0 0}
+@media(max-width:620px){.live-analytics-heading{align-items:flex-start;flex-direction:column;gap:6px}}
+@media(max-width:900px){.live-analytics-frame{height:1240px}}
