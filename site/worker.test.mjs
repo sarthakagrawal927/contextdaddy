@@ -47,3 +47,24 @@ test('updater feed is RSS with bounded caching and does not inflate download met
  assert.equal(response.headers.get('cache-control'),'public, max-age=300');
  assert.equal(e.events.length,0);
 });
+
+test('agent endpoints keep GET and HEAD types and routes without download events', async () => {
+ for (const [path, target, type] of [
+  ['/api/ai', '/api/ai.json', 'application/json'],
+  ['/index.md', '/index.md', 'text/markdown'],
+  ['/llms.txt', '/llms.txt', 'text/plain'],
+  ['/robots.txt', '/robots.txt', 'text/plain'],
+  ['/sitemap.xml', '/sitemap.xml', 'application/xml'],
+ ]) {
+  for (const method of ['GET', 'HEAD']) {
+   const e=env(); const response=await worker.fetch(new Request('https://storagedaddy.significanthobbies.com'+path,{method}),e);
+   assert.equal(response.status,200);
+   assert.equal(new URL(e.requested[0]).pathname,'/storagedaddy'+target);
+   assert.equal(response.headers.get('content-type'),type+'; charset=utf-8');
+   assert.equal(e.events.length,0);
+  }
+ }
+ const e=env(404); const response=await worker.fetch(new Request('https://storagedaddy.significanthobbies.com/index.md'),e);
+ assert.equal(response.status,404);
+ assert.notEqual(response.headers.get('content-type'),'text/markdown; charset=utf-8');
+});

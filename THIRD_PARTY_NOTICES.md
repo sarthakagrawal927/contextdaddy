@@ -1,5 +1,7 @@
 # Third-party notices
 
+The website's GitHub mark comes from GitHub's Octicons (MIT). Its license is included at `site/public/storagedaddy/assets/octicons-LICENSE.txt`. GitHub's name and mark remain GitHub trademarks. The website also loads SaaS Maker's shared project strip and AI footer; provider artwork retains its owners' terms.
+
 The MIT license in this repository applies to StorageDaddy's original source
 code and documentation. Third-party code and brand assets retain their own
 terms; this repository does not grant rights to third-party trademarks.

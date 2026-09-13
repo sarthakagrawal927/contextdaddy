@@ -1,0 +1,12 @@
+# storagedaddy
+
+> Open-source Mac storage analyzer for developers. Free during early access.
+
+## Product
+- [Product guide](https://storagedaddy.significanthobbies.com/index.md): Features, system requirements, cleanup safeguards, privacy and archive limitations.
+- [Download](https://storagedaddy.significanthobbies.com/download): Signed and notarized Apple silicon macOS app.
+- [Source and feedback](https://github.com/sarthakagrawal927/storagedaddy): MIT source and GitHub issues.
+
+## Machine surfaces
+- [Agent catalog](https://storagedaddy.significanthobbies.com/api/ai)
+- [Sitemap](https://storagedaddy.significanthobbies.com/sitemap.xml)

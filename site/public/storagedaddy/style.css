@@ -24,3 +24,7 @@
 .beta-label{font-size:10px;font-weight:600;color:var(--muted);vertical-align:middle;border:1px solid var(--line);border-radius:20px;padding:3px 6px;margin-left:6px}
 .faq-list p a{text-decoration:underline;text-underline-offset:3px}
 @media(max-width:620px){.hero{padding-top:40px;gap:28px}.hero h1{font-size:clamp(2.8rem,12.8vw,3.3rem)}.hero-actions{align-items:center}.hero .eyebrow{line-height:1.8;letter-spacing:.08em}.real-product figcaption{font-size:11px}.real-product p{font-size:13px}}
+
+/* Early access and shared Fleet footer. */
+.github-icon{display:block;filter:invert(1);flex:none}.github-link{justify-content:center;width:44px}.text-link .github-icon{width:20px;height:20px}.early-access{font-size:14px;color:var(--mint-soft);margin:24px 0 6px}.early-access a{text-decoration:underline;text-underline-offset:4px}.hero .microcopy{margin-top:6px}.site-footer{grid-template-columns:1fr 2fr;gap:20px}.site-footer>p{grid-column:1;font-size:13px;line-height:1.7}.footer-links{grid-column:2;grid-row:1/3;flex-wrap:wrap;gap:4px 24px}.footer-links a{gap:8px}.footer-links .github-icon{width:17px;height:17px}fleet-footer-extension{--fleet-footer-surface:#000;--fleet-footer-edge:clamp(16px,4vw,64px)}ai-chat-footer{--ai-footer-focus:var(--mint)}portfolio-project-strip{--portfolio-strip-focus:var(--mint)}.review-chip .check-circle{margin-left:0;color:#000}
+@media(max-width:620px){.site-header nav .github-link{display:inline-flex;margin-right:8px}.site-footer{display:block}.early-access{max-width:290px;margin-inline:auto}.footer-links{justify-content:flex-start}}

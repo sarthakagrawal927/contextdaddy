@@ -15,7 +15,8 @@ function secure(response) {
   const result = new Response(response.body, response);
   result.headers.set('X-Content-Type-Options', 'nosniff');
   result.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  result.headers.set('Content-Security-Policy', "default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self' https://ingest.sassmaker.com; connect-src https://ingest.sassmaker.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+  // Fleet's hosted widgets use shadow-root styles and bundled data-URI logos.
+  result.headers.set('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://ingest.sassmaker.com https://sassmaker.com; connect-src https://ingest.sassmaker.com https://sassmaker.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
   return result;
 }
 export default {
@@ -28,10 +29,21 @@ export default {
     if (url.hostname === 'significanthobbies.com') return new Response('Not found', { status: 404 });
     const isDownload = url.pathname === '/download' || url.pathname === release.path.slice(base.length);
     const assetURL = new URL(request.url);
-    assetURL.pathname = isDownload ? release.path : base + url.pathname;
+    assetURL.pathname = isDownload ? release.path : base + (url.pathname === '/api/ai' ? '/api/ai.json' : url.pathname);
     assetURL.search = '';
     const response = await env.ASSETS.fetch(new Request(assetURL, request));
     const result = secure(response);
+    const agentTypes = {
+      '/api/ai': 'application/json; charset=utf-8',
+      '/llms.txt': 'text/plain; charset=utf-8',
+      '/index.md': 'text/markdown; charset=utf-8',
+      '/robots.txt': 'text/plain; charset=utf-8',
+      '/sitemap.xml': 'application/xml; charset=utf-8',
+    };
+    if (response.ok && url.pathname in agentTypes) {
+      result.headers.set('Content-Type', agentTypes[/** @type {keyof typeof agentTypes} */ (url.pathname)]);
+      result.headers.set('Cache-Control', 'public, max-age=300');
+    }
     if (url.pathname === "/updates/appcast.xml" && response.ok) {
       result.headers.set("Content-Type", "application/rss+xml; charset=utf-8");
       result.headers.set("Cache-Control", "public, max-age=300");
