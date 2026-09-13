@@ -304,7 +304,7 @@ struct CleanupView: View {
             } else if m.staged.isEmpty { StorageEmptyView("Choose what to clean up", systemImage: "tray", description: Text("Right-click a file or folder and choose Add to Cleanup. Each item is checked before it appears here.")) }
             else if let scan = m.scan {
                 List(m.staged.sorted(), id: \.self) { id in
-                    HStack {
+                    HStack(alignment: .top) {
                         Image(systemName: scan.nodes[id].isDirectory ? "folder.fill" : "doc.fill")
                             .foregroundStyle(Tints.forNode(scan.nodes[id])).font(.title3).frame(width: 32)
                         VStack(alignment: .leading, spacing: 5) {
@@ -316,12 +316,17 @@ struct CleanupView: View {
                                     .font(.caption).foregroundStyle(Tints.coral)
                                 Button("Review warning") { m.reviewIncompleteCleanup(id) }.font(.caption).disabled(m.busy)
                             }
+                            if scan.nodes[id].isDirectory {
+                                FolderSymlinksView(scan: scan, folderID: id, cleanupReview: true)
+                                    .id("\(scan.started.timeIntervalSince1970):\(scan.rootPath):\(id)")
+                                    .frame(maxWidth: 540, alignment: .leading)
+                            }
                         }
                         Spacer()
                         Text(DiskFormat.bytes(scan.nodes[id].allocatedBytes)).monospacedDigit()
                             .foregroundStyle(Tints.forNode(scan.nodes[id])).frame(width: 104, alignment: .trailing)
                         Button("Remove") { m.unstage(id) }.disabled(m.busy)
-                    }.listRowBackground(Color.black)
+                    }.accessibilityElement(children: .contain).listRowBackground(Color.black)
                 }.scrollContentBackground(.hidden).listStyle(.plain)
                 HStack { Text("\(m.staged.count) \(m.staged.count == 1 ? "item" : "items") · \(DiskFormat.bytes(m.staged.reduce(0) { $0 + scan.nodes[$1].allocatedBytes })) allocated").fontWeight(.medium); Spacer(); Button("Move to Trash…", action: m.trashStaged).buttonStyle(StorageButtonStyle(prominent: true)).tint(Tints.coral).disabled(m.busy || m.monitoring) }
                 Text("Trash still uses disk space until it is emptied.").font(.caption).foregroundStyle(Tints.secondaryText)

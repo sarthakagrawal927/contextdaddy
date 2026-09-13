@@ -409,6 +409,10 @@ struct InspectorView: View {
                     Divider().overlay(Tints.secondaryText.opacity(0.18))
                     metric("On disk", DiskFormat.bytes(n.allocatedBytes)); metric("Logical", DiskFormat.bytes(n.logicalBytes)); metric("Modified", n.modified.formatted(date: .abbreviated, time: .omitted)); metric("Contents", "\(n.children.count) immediate items")
                     Text("Allocated totals can include shared APFS blocks. They are not a promise of reclaimable space.").font(.caption).foregroundStyle(Tints.secondaryText)
+                    if n.isDirectory {
+                        FolderSymlinksView(scan: scan, folderID: n.id)
+                            .id("\(scan.started.timeIntervalSince1970):\(scan.rootPath):\(n.id)")
+                    }
                     Divider().overlay(Tints.secondaryText.opacity(0.18))
                     Button("Reveal in Finder", systemImage: "arrow.up.forward.square") { m.reveal(n.id) }
                     if !n.isDirectory { Button("Quick Look", systemImage: "eye") { preview = PreviewSelection(url: scan.url(for: n.id)) } }
