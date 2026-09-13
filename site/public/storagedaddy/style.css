@@ -28,3 +28,22 @@
 /* Early access and shared Fleet footer. */
 .github-icon{display:block;filter:invert(1);flex:none}.github-link{justify-content:center;width:44px}.text-link .github-icon{width:20px;height:20px}.early-access{font-size:14px;color:var(--mint-soft);margin:24px 0 6px}.early-access a{text-decoration:underline;text-underline-offset:4px}.hero .microcopy{margin-top:6px}.site-footer{grid-template-columns:1fr 2fr;gap:20px}.site-footer>p{grid-column:1;font-size:13px;line-height:1.7}.footer-links{grid-column:2;grid-row:1/3;flex-wrap:wrap;gap:4px 24px}.footer-links a{gap:8px}.footer-links .github-icon{width:17px;height:17px}fleet-footer-extension{--fleet-footer-surface:#000;--fleet-footer-edge:clamp(16px,4vw,64px)}ai-chat-footer{--ai-footer-focus:var(--mint)}portfolio-project-strip{--portfolio-strip-focus:var(--mint)}.review-chip .check-circle{margin-left:0;color:#000}
 @media(max-width:620px){.site-header nav .github-link{display:inline-flex;margin-right:8px}.site-footer{display:block}.early-access{max-width:290px;margin-inline:auto}.footer-links{justify-content:flex-start}}
+
+/* A focused download group: action, availability, then reassurance. */
+.hero-copy{width:100%}
+.hero .hero-lede{max-width:600px;font-size:20px;line-height:1.6;color:var(--muted);margin-block:24px 30px}
+.hero-actions{gap:12px}
+.hero-actions .button{min-height:56px;justify-content:center;border-radius:12px;padding:14px 24px;font-size:15px;font-weight:650;line-height:1.2;border:1px solid transparent;box-sizing:border-box;white-space:nowrap}
+.hero-actions .button-primary{min-width:202px;background:#8bc6a0;box-shadow:0 4px 16px rgba(107,210,156,.07)}
+.hero-actions .button-primary:hover{background:#a0d9b4}
+.hero-actions .button-source{min-width:156px;gap:10px;color:var(--mint-soft);border-color:rgba(196,230,210,.22);background:transparent}
+.hero-actions .button-source:hover{border-color:var(--mint);background:rgba(107,210,156,.05)}
+.hero-actions .github-icon{width:18px;height:18px;opacity:.85}
+.hero-assurance{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 18px;margin-top:20px;font-size:12px}
+.hero-assurance .early-access{display:inline-flex;align-items:center;gap:7px;margin:0;font-size:12px;color:var(--mint-soft)}
+.hero-assurance .early-access>span{width:5px;height:5px;border-radius:50%;background:var(--mint)}
+.hero-assurance>a{display:inline-flex;align-items:center;min-height:44px;color:var(--muted);text-decoration:none}
+.hero-assurance>a:hover{color:var(--mint-soft);text-decoration:underline;text-underline-offset:4px}
+.hero-confidence{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 18px;font-size:11px;line-height:1.6;color:var(--muted);margin:0}
+.hero-confidence span+span{position:relative}.hero-confidence span+span:before{content:'·';position:absolute;left:-11px}
+@media(max-width:620px){.hero .hero-lede{font-size:16px;margin-block:20px 26px}.hero-actions{flex-direction:row;flex-wrap:nowrap;gap:10px;width:100%}.hero-actions .button{font-size:14px;padding:14px 16px;min-width:0}.hero-actions .button-primary{flex:1.2}.hero-actions .button-source{flex:1}.hero-assurance{gap:0 14px;margin-top:16px}.hero-confidence{font-size:10px;gap:6px 14px}.hero-confidence span+span:before{left:-9px}}
