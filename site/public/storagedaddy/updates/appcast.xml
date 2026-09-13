@@ -4,12 +4,12 @@
         <title>StorageDaddy</title>
         <item>
             <title>0.1.2</title>
-            <pubDate>Sat, 12 Sep 2026 22:32:02 +0530</pubDate>
-            <ns0:version>71</ns0:version>
+            <pubDate>Sun, 13 Sep 2026 12:22:39 +0530</pubDate>
+            <ns0:version>75</ns0:version>
             <ns0:shortVersionString>0.1.2</ns0:shortVersionString>
             <ns0:minimumSystemVersion>14.0</ns0:minimumSystemVersion>
             <ns0:hardwareRequirements>arm64</ns0:hardwareRequirements>
-            <enclosure url="https://storagedaddy.significanthobbies.com/updates/StorageDaddy-0.1.2-build71-arm64.dmg" length="7451489" type="application/octet-stream" ns0:edSignature="RFnFqEiC/byax0Xp4QOwuHUVYzPabS7JVOKjpS3qzuKDRkdp6WcBzo9AEgH1mfuCp+encCnjibUhv2E8cRIGDA==" />
-        <description>AI Context is now labeled Beta, with expandable projects, per-agent context estimates and shared Global Skills. This update also includes saved snapshot history and the latest storage, cleanup, application and AI session improvements.</description></item>
+            <enclosure url="https://storagedaddy.significanthobbies.com/updates/StorageDaddy-0.1.2-build75-arm64.dmg" length="7533408" type="application/octet-stream" ns0:edSignature="k64OoJZvvbvqvjTGPRNBqAevsspzjb6yQLvPALSVGiqkm/4/X+4uSC9u6o9/v2qB+Ts8d+nF4RTp0jZ/RBYhAw==" />
+        <description>Review symbolic links together in folder Inspector and Cleanup. See which links point inside or outside the folder, and which are broken, unavailable or changed. Includes compact paging and clearer cleanup row alignment. This is a visibility feature; cleanup behavior is unchanged.</description></item>
     </channel>
 </rss>
