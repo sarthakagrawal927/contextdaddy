@@ -1,6 +1,7 @@
 import Foundation
 
 public enum CleanupPreflightError: Error, LocalizedError, Sendable {
+    case excludedFolder(String)
     case invalidNodeID(Int)
     case rootNode(Int)
     case overlappingNodes(Int, Int)
@@ -10,6 +11,8 @@ public enum CleanupPreflightError: Error, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         switch self {
+        case let .excludedFolder(path):
+            return "\(URL(fileURLWithPath: path).lastPathComponent) is excluded or contains an excluded folder. Remove the exclusion in Settings before reviewing cleanup again."
         case let .invalidNodeID(id):
             return "Cleanup candidate \(id) is not present in the scan."
         case let .rootNode(id):
@@ -27,7 +30,7 @@ public enum CleanupPreflightError: Error, LocalizedError, Sendable {
 }
 
 public enum CleanupPreflight {
-    public static func validate(ids: [Int], in scan: ScanResult, acknowledgedIncomplete: [Int: CleanupIncompleteReview] = [:]) async throws {
+    public static func validate(ids: [Int], in scan: ScanResult, acknowledgedIncomplete: [Int: CleanupIncompleteReview] = [:], excludedFolders: [String] = []) async throws {
         try Task.checkCancellation()
         guard !ids.isEmpty else { return }
 
@@ -61,6 +64,11 @@ public enum CleanupPreflight {
                     )
                 }
             }
+        }
+
+        let exclusions = FolderExclusions(paths: excludedFolders)
+        for candidate in candidateURLs where exclusions.blocksCleanup(candidate.url) {
+            throw CleanupPreflightError.excludedFolder(candidate.url.path)
         }
 
         // Reject protected paths and stale identities before traversing candidates.

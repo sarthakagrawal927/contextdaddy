@@ -13,9 +13,9 @@ final class CleanupGuidanceTests: XCTestCase {
     }
 
     func testGuidanceDoesNotPromiseBuildsOrSessionsAreDisposable() {
-        XCTAssertEqual(CleanupGuidance.label(for: .buildOutputs), "Possible rebuild")
-        XCTAssertEqual(CleanupGuidance.label(for: .claudeSessions), "Archive first")
-        XCTAssertEqual(CleanupGuidance.label(for: .containerStorage), "Review first")
-        XCTAssertEqual(CleanupGuidance.label(for: nil), "Review first")
+        XCTAssertEqual(CleanupGuidance.label(for: .buildOutputs), "Regeneration unconfirmed")
+        XCTAssertEqual(CleanupGuidance.label(for: .claudeSessions), "Not regenerable · archive first")
+        XCTAssertEqual(CleanupGuidance.label(for: .containerStorage), "Regeneration unconfirmed")
+        XCTAssertEqual(CleanupGuidance.label(for: nil), "Regeneration unconfirmed")
     }
 }

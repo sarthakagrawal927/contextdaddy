@@ -334,6 +334,6 @@ struct CleanupFlag: View {
             .foregroundStyle(category == .packageCaches ? Tints.mint : Tints.yellow)
             .padding(.horizontal, 8).padding(.vertical, 4)
             .overlay(Capsule().stroke((category == .packageCaches ? Tints.mint : Tints.yellow).opacity(0.35)))
-            .help("Describes potential recovery, not whether this item is unused. Review contents and stop tools using it before cleanup.")
+            .help(CleanupGuidance.explanation(for: category) + " This does not mean the item is unused. Stop tools using it before cleanup.")
     }
 }

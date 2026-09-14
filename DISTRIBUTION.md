@@ -14,6 +14,13 @@ Storage opens your scan results. Explore shows scanned files; Developer Insights
 groups recognized tools and projects. Review Cleanup lists your choices.
 Save a snapshot from completed results to revisit it in History.
 
+Settings is visible at the bottom of the sidebar and in the app menu (⌘,).
+Use Excluded Folders to keep selected folders out of disk scans and storage
+cleanup. Changes save on this Mac; rescan to refresh existing results.
+Applications and AI tools keep their own inventories.
+Cleanup shows regeneration guidance on each item in one review list.
+“Usually regenerable” is not a guarantee that local changes can be recovered.
+
 Your files stay under your control
 ---------------------------------
 Scans do not delete files. Cleanup uses Trash only after confirmation.

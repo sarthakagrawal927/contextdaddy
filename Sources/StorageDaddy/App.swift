@@ -30,6 +30,10 @@ struct DiskBuddyApp: App {
                     Button("Cancel Scan") { model.cancel() }.keyboardShortcut(".").disabled(!model.busy)
                 }
             }
+        Settings {
+            StorageSettingsView(updates: updates).environmentObject(model)
+        }
+        .windowResizability(.contentSize)
     }
 }
 
@@ -72,6 +76,30 @@ struct AgeSummary: Sendable {
 }
 
 @MainActor final class ExplorerModel: ObservableObject {
+    @Published private(set) var excludedFolders: [String] = UserDefaults.standard.stringArray(forKey: "excludedFolders") ?? [] {
+        didSet {
+            UserDefaults.standard.set(excludedFolders, forKey: "excludedFolders")
+            // Existing results remain historical; clear prior cleanup approvals.
+            staged.removeAll()
+            incompleteCleanup.removeAll()
+            exclusionResultsStale = scan != nil
+            progress = "Exclusions updated · Cleanup queue cleared · Nothing moved"
+        }
+    }
+
+    @Published private(set) var exclusionResultsStale = false
+
+    func addExcludedFolders(_ urls: [URL]) {
+        guard !busy else { return }
+        let paths = FolderExclusions(paths: excludedFolders + urls.map { $0.standardizedFileURL.path }).paths
+        if paths != excludedFolders { excludedFolders = paths }
+    }
+
+    func removeExcludedFolder(_ path: String) {
+        guard !busy else { return }
+        excludedFolders.removeAll { $0 == path }
+    }
+
     @Published var cleanupRefreshPaths: [String] = UserDefaults.standard.stringArray(forKey: "cleanupRefreshPaths") ?? [] {
         didSet { UserDefaults.standard.set(cleanupRefreshPaths, forKey: "cleanupRefreshPaths") }
     }
@@ -224,11 +252,11 @@ struct AgeSummary: Sendable {
                 }
             }
             do {
-                let result = try await DiskScanner.scan(root: url, progress: { [weak self] p in
+                let result = try await DiskScanner.scan(root: url, excludedFolders: excludedFolders, progress: { [weak self] p in
                     Task { @MainActor [weak self] in guard let self, self.scanVersion == version, self.busy else { return }; self.liveProgress = p; self.progress = "\(p.entries.formatted()) entries · \(StorageLabels.location(p.path))" }
                 })
                 try Task.checkCancellation()
-                guard !result.nodes.isEmpty else { throw NSError(domain: "Scan", code: 1, userInfo: [NSLocalizedDescriptionKey: "This folder is excluded by the sensitive-path policy. Choose a different folder."]) }
+                guard !result.nodes.isEmpty else { throw NSError(domain: "Scan", code: 1, userInfo: [NSLocalizedDescriptionKey: "This folder is excluded by folder settings or the sensitive-path policy. Choose a different folder."]) }
                 let summaryStart = clock.now
                 let priorScan = self.scan?.rootPath == result.rootPath ? self.scan : nil
                 let priorReport = priorScan == nil ? nil : developerReport
@@ -272,7 +300,7 @@ struct AgeSummary: Sendable {
                 analysisElapsed = Double(readyTime.seconds) + Double(readyTime.attoseconds) / 1e18
                 didPublish = true
                 if result.nodes.count > 1 || result.skipped == 0 { cleanupRefreshPaths.removeAll { $0 == result.rootPath } }
-                self.scan = result; quickWinNodes = summary.0; appNodes = summary.1; fileCount = summary.2; focus = 0; selected = nil
+                self.scan = result; exclusionResultsStale = false; quickWinNodes = summary.0; appNodes = summary.1; fileCount = summary.2; focus = 0; selected = nil
                 // A manual scan must land on results, even when launched from credits or another utility page.
                 if let destination {
                     if destination == .explore { openStorage(.explore) }
@@ -366,7 +394,7 @@ struct AgeSummary: Sendable {
             do {
                 var acknowledgement: CleanupIncompleteReview?
                 do {
-                    try await CleanupPreflight.validate(ids: [id], in: scan)
+                    try await CleanupPreflight.validate(ids: [id], in: scan, excludedFolders: excludedFolders)
                 } catch let CleanupPreflightError.incompleteRescan(_, review) {
                     try Task.checkCancellation()
                     guard scanVersion == version else { return }
@@ -375,7 +403,7 @@ struct AgeSummary: Sendable {
                         progress = "Nothing added · Keep exploring"
                         return
                     }
-                    try await CleanupPreflight.validate(ids: [id], in: scan, acknowledgedIncomplete: [id: review])
+                    try await CleanupPreflight.validate(ids: [id], in: scan, acknowledgedIncomplete: [id: review], excludedFolders: excludedFolders)
                     acknowledgement = review
                 }
                 try Task.checkCancellation()
@@ -430,7 +458,7 @@ struct AgeSummary: Sendable {
                     let path = scan.url(for: id).path
                     if staged.contains(where: { let parent = scan.url(for: $0).path; return path == parent || path.hasPrefix(parent + "/") }) { continue }
                     progress = "Checking \(StorageLabels.name(scan.nodes[id]))…"
-                    try await CleanupPreflight.validate(ids: [id], in: scan)
+                    try await CleanupPreflight.validate(ids: [id], in: scan, excludedFolders: excludedFolders)
                     try Task.checkCancellation()
                     guard scanVersion == version else { return }
                     for other in Array(staged) where scan.url(for: other).path.hasPrefix(path + "/") { unstage(other) }
@@ -509,7 +537,7 @@ struct AgeSummary: Sendable {
             do {
                 // Confirmation can remain open indefinitely. Rescan afterward,
                 // using exactly the candidates that the user approved.
-                try await CleanupPreflight.validate(ids: ids, in: scan, acknowledgedIncomplete: acknowledgements)
+                try await CleanupPreflight.validate(ids: ids, in: scan, acknowledgedIncomplete: acknowledgements, excludedFolders: excludedFolders)
                 try Task.checkCancellation()
                 guard scanVersion == version, staged == Set(ids) else {
                     throw NSError(domain: "Cleanup", code: 1, userInfo: [NSLocalizedDescriptionKey: "The selection changed. Review it again."])
@@ -520,6 +548,9 @@ struct AgeSummary: Sendable {
                     for id in ids {
                         try Task.checkCancellation()
                         let url = scan.url(for: id)
+                        if FolderExclusions(paths: excludedFolders).blocksCleanup(url) {
+                            throw CleanupPreflightError.excludedFolder(url.path)
+                        }
                         try CleanupSafety.validate(url: url, expected: scan.nodes[id], root: URL(fileURLWithPath: scan.rootPath))
                         var trashedURL: NSURL?
                         try FileManager.default.trashItem(at: url, resultingItemURL: &trashedURL)

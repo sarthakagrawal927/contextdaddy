@@ -115,3 +115,11 @@ StorageDaddy's original code and documentation are available under the
 [MIT license](LICENSE). Third-party libraries and provider artwork retain their
 own terms; see [Third-party notices](THIRD_PARTY_NOTICES.md). Acknowledgments
 are also available in the app menu.
+
+### Excluded folders
+
+Click **Settings** at the bottom of the sidebar, or open **StorageDaddy → Settings…** (⌘,) and select **Excluded Folders**. Add folders to omit them and their contents from future disk scans. Preferences save on this Mac across launches. Remove a folder from this list to include it again, then rescan for updated totals.
+
+Exclusions also block storage cleanup of those folders, their descendants, and any parent that would contain them. Changing exclusions clears the cleanup queue and marks existing results for a rescan. Settings cannot change during an active scan or cleanup check. Independent Applications and AI tools retain their own inventory scope.
+
+Cleanup uses one review list with a regeneration label on each item. Recognized caches and dependencies are usually regenerable; ambiguous build folders and other data are marked “Regeneration unconfirmed.” These labels are recovery guidance, not proof that an item is unused or disposable.

@@ -16,6 +16,13 @@ struct ExplorerView: View {
             HStack(spacing: 0) {
                 VStack(spacing: 0) {
                     if m.busy { HStack { ProgressView().controlSize(.small); Text(m.progress).lineLimit(1); Spacer(); Button("Cancel") { m.cancel() } }.padding(12).background(Color.black) }
+                    if !m.busy, m.exclusionResultsStale {
+                        HStack {
+                            Label("Exclusions changed. Rescan to update these results.", systemImage: "folder.badge.minus")
+                            Spacer()
+                            Button("Rescan", action: m.rescan)
+                        }.font(.callout).foregroundStyle(Tints.secondaryText).padding(12)
+                    }
                     if !m.busy, let path = m.cleanupRefreshPaths.first {
                         HStack(spacing: 12) {
                             Image(systemName: "arrow.clockwise.circle.fill").foregroundStyle(Tints.mint)
@@ -156,6 +163,13 @@ struct ExplorerView: View {
                     }
                 }.padding(.vertical, 12)
             }
+            SettingsLink {
+                Label("Settings", systemImage: "gearshape")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(StorageButtonStyle())
+            .accessibilityIdentifier("open-settings")
+            .help("Open Settings to manage excluded folders and update preferences (⌘,)")
             Text("Nothing is removed until you review it.").font(.caption).foregroundStyle(Tints.secondaryText)
         }
         .padding(.horizontal, 15)

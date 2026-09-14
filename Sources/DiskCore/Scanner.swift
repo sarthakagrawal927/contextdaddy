@@ -8,6 +8,7 @@ public enum DiskScanner {
         root: URL,
         backend: ScanBackend = .parallel,
         parallelism: Int = 0,
+        excludedFolders: [String] = [],
         progress: (@Sendable (ScanProgress) -> Void)? = nil
     ) async throws -> ScanResult {
         // Resolve ancestor aliases (for example /var -> /private/var), preserving
@@ -15,7 +16,7 @@ public enum DiskScanner {
         let cancellation = ScanCancellation()
         let worker = Task.detached(priority: .userInitiated) {
             let canonical = root.path == "/" ? root : root.deletingLastPathComponent().resolvingSymlinksInPath().appendingPathComponent(root.lastPathComponent)
-            var scanner = Scanner(root: canonical, backend: backend, parallelism: parallelism, cancellation: cancellation, progress: progress)
+            var scanner = Scanner(root: canonical, backend: backend, parallelism: parallelism, exclusions: FolderExclusions(paths: excludedFolders), cancellation: cancellation, progress: progress)
             return try scanner.run()
         }
         return try await withTaskCancellationHandler { try await worker.value } onCancel: { cancellation.cancel(); worker.cancel() }
@@ -37,6 +38,7 @@ private struct Scanner {
     private let root: URL
     private let rootPath: String
     private let backend: ScanBackend
+    private let exclusions: FolderExclusions
     private let parallelism: Int
     private let cancellation: ScanCancellation
     private var linkedAllocations: [(id: Int, bytes: Int64)] = []
@@ -60,7 +62,8 @@ private struct Scanner {
     private var livePendingOwner: Int?
     private var livePendingBytes: Int64 = 0
 
-    init(root: URL, backend: ScanBackend, parallelism: Int, cancellation: ScanCancellation, progress: (@Sendable (ScanProgress) -> Void)?) {
+    init(root: URL, backend: ScanBackend, parallelism: Int, exclusions: FolderExclusions, cancellation: ScanCancellation, progress: (@Sendable (ScanProgress) -> Void)?) {
+        self.exclusions = exclusions
         self.root = root
         self.rootPath = root.path
         self.backend = backend
@@ -74,8 +77,8 @@ private struct Scanner {
         let rootPath = self.rootPath
         let started = Date()
         try Task.checkCancellation()
-        guard !isSensitivePath(root) else {
-            recordSkip(path: rootPath, reason: "excluded by sensitive path policy")
+        guard !exclusions.contains(rootPath), !isSensitivePath(root) else {
+            recordSkip(path: rootPath, reason: exclusions.contains(rootPath) ? "excluded by folder settings" : "excluded by sensitive path policy")
             return ScanResult(rootPath: rootPath, nodes: [], started: started, elapsed: Date().timeIntervalSince(started), processDiskReadBytes: DiskReadMetric.bytesRead(from: diskReadStart, to: ProcessMemory.diskReadBytes()), skipped: skipped, incompleteEvidence: incompleteEvidence, incompleteEvidenceTruncated: incompleteEvidenceTruncated)
         }
 
@@ -159,6 +162,10 @@ private struct Scanner {
             var childDirectories: [ScanDirectory] = []
             for (entryIndex, entry) in entries.enumerated() {
                 if entryIndex & 255 == 0 { try cancellation.check() }
+                if !exclusions.paths.isEmpty, exclusions.contains(childPath(directory.path, entry.name)) {
+                    recordSkip(path: childPath(directory.path, entry.name), reason: "excluded by folder settings")
+                    continue
+                }
                 guard !isSensitiveComponent(entry.name) else {
                     recordSkip(path: childPath(directory.path, entry.name), reason: "excluded by sensitive path policy")
                     continue
