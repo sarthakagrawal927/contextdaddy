@@ -1,15 +1,15 @@
 <?xml version='1.0' encoding='utf-8'?>
-<rss xmlns:ns0="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
-        <title>StorageDaddy</title>
+        <title>storagedaddy</title>
         <item>
-            <title>0.1.2</title>
-            <pubDate>Mon, 14 Sep 2026 19:08:50 +0530</pubDate>
-            <ns0:version>76</ns0:version>
-            <ns0:shortVersionString>0.1.2</ns0:shortVersionString>
-            <ns0:minimumSystemVersion>14.0</ns0:minimumSystemVersion>
-            <ns0:hardwareRequirements>arm64</ns0:hardwareRequirements>
-            <enclosure url="https://storagedaddy.significanthobbies.com/updates/StorageDaddy-0.1.2-build76-arm64.dmg" length="7606756" type="application/octet-stream" ns0:edSignature="0CTMzK0usVASrtzoXnAmcjVxZOcWQBmkXxe+cr+N2ndbmc5KUaEZzlVxZ20+1TULPsxjT+7RRcyZhrDBk34fBA==" />
-        <description>Settings is now visible in the sidebar. Add excluded folders to skip them during disk scans and protect them, their contents and parent folders from storage cleanup. Exclusions save across launches; changing them clears cleanup selections and prompts a rescan. Cleanup stays in one review list with regeneration guidance on each item. Independent Applications and AI inventories retain their own scope.</description></item>
+            <title>storagedaddy 0.1.2 (79)</title>
+            <pubDate>Mon, 14 Sep 2026 19:28:53 +0530</pubDate>
+            <sparkle:version>79</sparkle:version>
+            <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://storagedaddy.significanthobbies.com/updates/storagedaddy-0.1.2-build79-arm64.dmg" length="7622888" type="application/octet-stream" sparkle:edSignature="sd/Lq5ZufzB4xBKbzwfSNk0GC7iPEUjV8A663I3RtwZ/ClItT8lMN76wUzLC6eiwhDaLBEJErjJ5GaL5et+NBA==" />
+        <description>Settings now includes Acknowledgments. storagedaddy is categorized under Utilities and uses lowercase branding throughout. Everyone who downloads during early access gets all future versions free forever.</description></item>
     </channel>
 </rss>

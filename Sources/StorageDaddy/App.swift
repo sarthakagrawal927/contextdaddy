@@ -8,12 +8,12 @@ struct DiskBuddyApp: App {
     @StateObject private var model = ExplorerModel()
     @StateObject private var updates = AppUpdates()
     var body: some Scene {
-        WindowGroup("StorageDaddy") { ExplorerView().environmentObject(model).frame(minWidth: 880, minHeight: 600).onAppear { updates.start(model: model) } }
+        WindowGroup("storagedaddy") { ExplorerView().environmentObject(model).frame(minWidth: 880, minHeight: 600).onAppear { updates.start(model: model) } }
             .defaultSize(width: 1320, height: 850)
             .windowStyle(.hiddenTitleBar)
             .commands {
                 CommandGroup(replacing: .appInfo) {
-                    Button("About StorageDaddy") { model.showAbout = true }
+                    Button("About storagedaddy") { model.showAbout = true }
                 }
                 CommandGroup(after: .appInfo) {
                     Button("Check for Updates…", action: updates.check).disabled(!updates.canCheck || !updates.isIdle)
@@ -341,7 +341,7 @@ struct AgeSummary: Sendable {
         Help me understand this folder on my Mac before I change anything.
 
         Folder: \(scan.url(for: id).path)
-        StorageDaddy measured:
+        storagedaddy measured:
         - On disk: \(DiskFormat.bytes(node.allocatedBytes))
         - Logical size: \(DiskFormat.bytes(node.logicalBytes))
         - Immediate items: \(node.children.count.formatted())

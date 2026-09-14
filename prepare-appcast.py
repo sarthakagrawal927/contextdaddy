@@ -24,7 +24,7 @@ source = sources[0]
 if hashlib.sha256(source.read_bytes()).hexdigest() != receipt["dmgSha256"]:
     raise SystemExit("Release checksum mismatch")
 args.output.mkdir(parents=True, exist_ok=False)
-filename = f"StorageDaddy-{receipt['version']}-build{receipt['build']}-arm64.dmg"
+filename = f"storagedaddy-{receipt['version']}-build{receipt['build']}-arm64.dmg"
 shutil.copy2(source, args.output / filename)
 tool = sparkle_support.ROOT / ".build/artifacts/sparkle/Sparkle/bin/generate_appcast"
 subprocess.run([str(tool), "--account", "storagedaddy-updates", "--download-url-prefix",

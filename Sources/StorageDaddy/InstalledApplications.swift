@@ -174,7 +174,7 @@ enum ApplicationSort: String, CaseIterable {
         }
         let ownPath = Bundle.main.bundleURL.standardizedFileURL.path
         if path == ownPath || ownPath.hasPrefix(path + "/") {
-            return "StorageDaddy cannot remove itself while running."
+            return "storagedaddy cannot remove itself while running."
         }
         if NSWorkspace.shared.runningApplications.contains(where: {
             guard let running = $0.bundleURL?.standardizedFileURL.path else { return false }
@@ -255,7 +255,11 @@ enum ApplicationSort: String, CaseIterable {
                 if let item = MDItemCreate(kCFAllocatorDefault, url.path as CFString) {
                     lastUsed = MDItemCopyAttribute(item, kMDItemLastUsedDate) as? Date
                 } else { lastUsed = nil }
-                found[url.path] = InstalledApplication(id: url.path, name: url.deletingPathExtension().lastPathComponent, url: url, allocatedBytes: nil, lastUsed: lastUsed, iconPNG: appIcon(at: url), category: ApplicationCategory.title(for: Bundle(url: url)?.object(forInfoDictionaryKey: "LSApplicationCategoryType") as? String))
+                let bundle = Bundle(url: url)
+                let declaredName = (bundle?.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+                    ?? (bundle?.object(forInfoDictionaryKey: "CFBundleName") as? String)
+                let name = declaredName?.trimmingCharacters(in: .whitespacesAndNewlines)
+                found[url.path] = InstalledApplication(id: url.path, name: name.flatMap { $0.isEmpty ? nil : $0 } ?? url.deletingPathExtension().lastPathComponent, url: url, allocatedBytes: nil, lastUsed: lastUsed, iconPNG: appIcon(at: url), category: ApplicationCategory.title(for: bundle?.object(forInfoDictionaryKey: "LSApplicationCategoryType") as? String))
             }
         }
         return found.values.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }

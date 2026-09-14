@@ -33,7 +33,7 @@ struct ApplicationRemovalSheet: View {
                 Label("Documents, preferences and support data stay on your Mac.", systemImage: "folder")
                 Label("You can restore it from Trash in Finder.", systemImage: "arrow.uturn.backward")
             }.font(.callout)
-            Text("Space is not freed until Trash is emptied. StorageDaddy will not empty it.")
+            Text("Space is not freed until Trash is emptied. storagedaddy will not empty it.")
                 .font(.caption).foregroundStyle(Tints.secondaryText)
             if let error = applications.removalError {
                 Text(error).font(.callout).foregroundStyle(Tints.yellow)

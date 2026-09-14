@@ -70,8 +70,9 @@ sparkle_support.embed(bundle)
 with (contents / "Info.plist").open("wb") as f:
     plistlib.dump({
         "CFBundleExecutable": "StorageDaddy", "CFBundleIdentifier": "local.fleet.storagedaddy",
-        "CFBundleName": "StorageDaddy", "CFBundleDisplayName": "StorageDaddy",
+        "CFBundleName": "storagedaddy", "CFBundleDisplayName": "storagedaddy",
         "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "0.1.2",
+        "LSApplicationCategoryType": "public.app-category.utilities",
         "CFBundleVersion": str(build_number), "CFBundleIconFile": "StorageDaddy.icns", "LSMinimumSystemVersion": "14.0",
         "NSHighResolutionCapable": True, "NSPrincipalClass": "NSApplication", **update_configuration
     }, f)

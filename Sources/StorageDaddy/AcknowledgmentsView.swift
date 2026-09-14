@@ -7,7 +7,7 @@ struct AcknowledgmentsView: View {
             VStack(alignment: .leading, spacing: 24) {
                 Text("BUILT WITH THANKS").font(.system(size: 11, weight: .semibold, design: .monospaced)).tracking(2).foregroundStyle(Tints.mint)
                 HStack { Text("Acknowledgments").font(.system(size: 32, weight: .bold, design: .rounded)); DoodleArt(topic: .thanks).frame(width: 90, height: 90); Spacer() }
-                Text("The foundations behind StorageDaddy.").foregroundStyle(Tints.secondaryText)
+                Text("The foundations behind storagedaddy.").foregroundStyle(Tints.secondaryText)
                 credit("Swift & Swift Package Manager", "Language, concurrency, and build tools. Swift is open source under Apache 2.0 with the Runtime Library Exception.", "https://www.swift.org/about/")
                 credit("Apple platform frameworks", "SwiftUI and AppKit power the native interface. Foundation and Darwin provide filesystem access; Quick Look provides previews. These are Apple platform SDKs.", "https://developer.apple.com/documentation/")
                 credit("Memory Pack · Memory Map", "The bundled local conversation archiver extracts prompts, replies and session metadata from Claude Code and Codex transcripts. Memory Pack is MIT-licensed; its Rust dependencies are credited in the bundled license notices.", "https://github.com/Significant-Hobbies/chatgpt-memory-insights/tree/main/packer")

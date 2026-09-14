@@ -43,7 +43,7 @@ struct ScanWelcomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 HStack {
-                    Label("WELCOME TO STORAGEDADDY", systemImage: "sparkle")
+                    Label("Welcome to storagedaddy", systemImage: "sparkle")
                         .font(.system(size: 11, weight: .semibold)).tracking(1.2).foregroundStyle(Tints.mint)
                     Spacer()
                     if let later { Button("Explore tools first", action: later).font(.caption) }
@@ -75,7 +75,7 @@ struct ScanWelcomeView: View {
                         Text(accessCoverageNote)
                             .font(.caption).foregroundStyle(Tints.secondaryText)
                         if accessDetails && accessStatus != .accessible {
-                            Text("Open Privacy & Security → Full Disk Access, add StorageDaddy with + and enable it. Reopen the app if macOS asks. This grants broad access to your files; protected and excluded items can still be skipped.")
+                            Text("Open Privacy & Security → Full Disk Access, add storagedaddy with + and enable it. Reopen the app if macOS asks. This grants broad access to your files; protected and excluded items can still be skipped.")
                                 .font(.callout).foregroundStyle(Tints.secondaryText)
                             HStack {
                                 Button("Open System Settings") {
@@ -131,7 +131,7 @@ struct ScanWelcomeView: View {
         case .accessible:
             "Protected-folder access is available. Choose what to scan below."
         case .limited:
-            "A protected location was blocked by macOS. Enable StorageDaddy in System Settings for broader coverage."
+            "A protected location was blocked by macOS. Enable storagedaddy in System Settings for broader coverage."
         case .unknown:
             "Access could not be confirmed from the available protected locations. Review the setting before a Mac-wide scan."
         }

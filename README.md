@@ -1,4 +1,6 @@
-# StorageDaddy
+# storagedaddy
+
+**Yours free forever, including all future versions.** Everyone who downloads during early access gets all future versions free forever. No trial expiry.
 
 A free, open-source Mac storage analyzer for developers. Find large folders,
 understand caches and build output, and review every cleanup before moving
@@ -8,7 +10,7 @@ anything to Trash.
 [Website](https://storagedaddy.significanthobbies.com/) ·
 [Report an issue](https://github.com/sarthakagrawal927/storagedaddy/issues)
 
-![StorageDaddy exploring a generated demo folder](site/public/storagedaddy/assets/storage-explorer.png)
+![storagedaddy exploring a generated demo folder](site/public/storagedaddy/assets/storage-explorer.png)
 
 The screenshot shows the real app with generated demonstration files. Its
 sizes and timing are not a whole-disk benchmark.
@@ -34,7 +36,7 @@ sizes and timing are not a whole-disk benchmark.
 ## Install
 
 The public DMG is Developer ID signed, notarized and stapled. It supports
-**Apple silicon Macs with macOS 14 or later**. Download it, drag StorageDaddy
+**Apple silicon Macs with macOS 14 or later**. Download it, drag storagedaddy
 into Applications and open it. Choose a disk or a folder to scan. Full Disk
 Access is optional and helps with protected locations.
 
@@ -111,14 +113,14 @@ exports before sharing: credential masking is best-effort.
 
 ## License and acknowledgments
 
-StorageDaddy's original code and documentation are available under the
+storagedaddy's original code and documentation are available under the
 [MIT license](LICENSE). Third-party libraries and provider artwork retain their
 own terms; see [Third-party notices](THIRD_PARTY_NOTICES.md). Acknowledgments
 are also available in the app menu.
 
 ### Excluded folders
 
-Click **Settings** at the bottom of the sidebar, or open **StorageDaddy → Settings…** (⌘,) and select **Excluded Folders**. Add folders to omit them and their contents from future disk scans. Preferences save on this Mac across launches. Remove a folder from this list to include it again, then rescan for updated totals.
+Click **Settings** at the bottom of the sidebar, or open **storagedaddy → Settings…** (⌘,) and select **Excluded Folders**. Add folders to omit them and their contents from future disk scans. Preferences save on this Mac across launches. Remove a folder from this list to include it again, then rescan for updated totals.
 
 Exclusions also block storage cleanup of those folders, their descendants, and any parent that would contain them. Changing exclusions clears the cleanup queue and marks existing results for a rescan. Settings cannot change during an active scan or cleanup check. Independent Applications and AI tools retain their own inventory scope.
 

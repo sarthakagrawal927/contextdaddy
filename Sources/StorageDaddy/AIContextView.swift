@@ -59,7 +59,7 @@ private struct SkillPreview: Identifiable {
             if Task.isCancelled {
                 status = "Context discovery paused"
             } else {
-                errorMessage = "StorageDaddy couldn’t finish checking agent context. Review coverage or try again."
+                errorMessage = "storagedaddy couldn’t finish checking agent context. Review coverage or try again."
                 status = "Context discovery needs attention"
             }
         }

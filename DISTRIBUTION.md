@@ -1,11 +1,14 @@
-StorageDaddy 0.1.2 — Beta
+storagedaddy 0.1.2 — Beta
 =======================
 
 Apple silicon Mac · macOS 14 Sonoma or later
 
+Yours free forever, including all future versions. Everyone who downloads during early access gets every future version free.
+There is no trial expiry or subscription.
+
 Install
 -------
-Drag StorageDaddy to Applications, eject this disk image, then open the app
+Drag storagedaddy to Applications, eject this disk image, then open the app
 from Applications. Enable Full Disk Access when onboarding points you to
 System Settings if you want a Mac-wide scan. A folder scan is also available.
 
@@ -36,7 +39,7 @@ exports before sharing them. No guaranteed compression ratio is promised.
 
 Privacy
 -------
-StorageDaddy processes your files on your Mac without accounts, app telemetry,
+storagedaddy processes your files on your Mac without accounts, app telemetry,
 uploads or AI calls. Sparkle checks for updates over HTTPS and downloads updates
 when you choose to install them.
 It scans file metadata. Session detail views read bounded local metadata;
@@ -55,8 +58,8 @@ Custom agent home folders are not automatically included in conversation exports
 AI Context is in beta. It groups discovered project instructions and shared
 skills; per-agent context loads are estimates, not measured live prompts.
 
-Acknowledgments and bundled dependency licenses are available from the
-StorageDaddy app menu → Acknowledgments.
+Acknowledgments and bundled dependency licenses are available in
+Settings → Acknowledgments and the storagedaddy app menu → Acknowledgments.
 
 ## Verified original review
-After a successful compact export, StorageDaddy tests ZIP integrity and binds SHA-256 digests to the archive and the exact original files represented by it. Review Originals lists eligible files and requires accepting the loss of resumable history and omitted data. A separate confirmation rechecks the archive and originals before moving files to Trash. Changed, replaced, unsupported or unrepresented files are not eligible. Close active sessions first: an old modification date does not prove a session is inactive. Filesystem checks and Trash moves are not one atomic transaction. A failure stops further moves and reports partial results; Show Originals in Trash supports Finder Put Back. Export remaining originals again to start a fresh review.
+After a successful compact export, storagedaddy tests ZIP integrity and binds SHA-256 digests to the archive and the exact original files represented by it. Review Originals lists eligible files and requires accepting the loss of resumable history and omitted data. A separate confirmation rechecks the archive and originals before moving files to Trash. Changed, replaced, unsupported or unrepresented files are not eligible. Close active sessions first: an old modification date does not prove a session is inactive. Filesystem checks and Trash moves are not one atomic transaction. A failure stops further moves and reports partial results; Show Originals in Trash supports Finder Put Back. Export remaining originals again to start a fresh review.

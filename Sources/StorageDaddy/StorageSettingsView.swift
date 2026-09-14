@@ -11,8 +11,13 @@ struct StorageSettingsView: View {
         TabView(selection: $tab) {
             VStack(alignment: .leading, spacing: 20) {
                 Text("General").font(.title2.weight(.semibold))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Yours free forever, including all future versions.").font(.headline).foregroundStyle(Tints.mint)
+                    Text("Everyone who downloads during early access gets every future version free. No trial expiry or subscription.")
+                        .foregroundStyle(Tints.secondaryText).fixedSize(horizontal: false, vertical: true)
+                }
                 Toggle("Automatically check for updates", isOn: $updates.automaticallyChecks)
-                Text("StorageDaddy checks for new versions. Installation waits until scans, exports and cleanup review are finished.")
+                Text("storagedaddy checks for new versions. Installation waits until scans, exports and cleanup review are finished.")
                     .foregroundStyle(Tints.secondaryText)
                 Button("Check for Updates…", action: updates.check)
                     .disabled(!updates.canCheck || !updates.isIdle)
@@ -30,7 +35,7 @@ struct StorageSettingsView: View {
                     VStack(spacing: 10) {
                         Image(systemName: "folder.badge.minus").font(.system(size: 28)).foregroundStyle(Tints.mint)
                         Text("No folders excluded").font(.headline)
-                        Text("Add folders you want StorageDaddy to leave alone.")
+                        Text("Add folders you want storagedaddy to leave alone.")
                             .foregroundStyle(Tints.secondaryText)
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -75,6 +80,9 @@ struct StorageSettingsView: View {
                 }.font(.caption).foregroundStyle(Tints.secondaryText).fixedSize(horizontal: false, vertical: true)
             }.padding(28)
                 .tabItem { Label("Excluded Folders", systemImage: "folder.badge.minus") }.tag(1)
+
+            AcknowledgmentsView()
+                .tabItem { Label("Acknowledgments", systemImage: "heart.text.square") }.tag(2)
         }
         .frame(width: 620, height: 520)
         .background(Color.black)

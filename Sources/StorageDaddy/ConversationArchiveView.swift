@@ -396,7 +396,7 @@ struct ConversationArchiveView: View {
 
     @ViewBuilder private var statusSection: some View {
         if !model.available {
-            Label("The archiving helper is missing from this build. Install a complete StorageDaddy app to export conversations.", systemImage: "exclamationmark.triangle")
+            Label("The archiving helper is missing from this build. Install a complete storagedaddy app to export conversations.", systemImage: "exclamationmark.triangle")
                 .foregroundStyle(Tints.yellow)
         }
         if model.busy {
@@ -419,7 +419,7 @@ struct ConversationArchiveView: View {
     }
 
     private var selectionSentence: String {
-        guard let estimate else { return "StorageDaddy is finding the transcript files that match this plan." }
+        guard let estimate else { return "storagedaddy is finding the transcript files that match this plan." }
         guard !estimate.sessions.isEmpty else { return "No transcript files match yet. Choose a later cutoff or another agent." }
         return "About \(displayBytes(estimate.allocatedBytes)) across \(estimate.sessions.count.formatted()) transcript files will be read into one compact ZIP."
     }

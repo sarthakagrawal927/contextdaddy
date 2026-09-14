@@ -25,7 +25,7 @@ struct DiskPickerView: View {
                     .keyboardShortcut(.cancelAction)
             }
 
-            Text("StorageDaddy scans only the filesystem you choose. It does not promise a complete accounting of every physical disk block, and it does not change permissions automatically.")
+            Text("storagedaddy scans only the filesystem you choose. It does not promise a complete accounting of every physical disk block, and it does not change permissions automatically.")
                 .font(.callout)
                 .foregroundStyle(Tints.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -163,7 +163,7 @@ struct StorageMessageSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("StorageDaddy").font(.title2.weight(.semibold))
+                Text("storagedaddy").font(.title2.weight(.semibold))
                 Spacer()
             }
             .padding(20)

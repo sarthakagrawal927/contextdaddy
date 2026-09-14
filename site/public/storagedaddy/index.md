@@ -7,7 +7,7 @@ Download: https://storagedaddy.significanthobbies.com/download
 Source and feedback: https://github.com/sarthakagrawal927/storagedaddy
 
 ## Availability and pricing
-Version 0.1.2 beta supports Apple silicon Macs with macOS 14 or later. Intel Macs are not supported. The DMG is signed and notarized. The app is free during early access while we gather feedback. Pricing for future releases may change. There is no account, checkout or subscription today. Published source remains MIT-licensed; third-party libraries and provider artwork retain their own terms.
+Version 0.1.2 beta supports Apple silicon Macs with macOS 14 or later. Intel Macs are not supported. The DMG is signed and notarized. Everyone who downloads during early access gets all future versions free forever. There is no trial expiry. There is no account, checkout or subscription today. Published source remains MIT-licensed; third-party libraries and provider artwork retain their own terms.
 
 ## What it does
 - Explore disk usage with live scan results, folder navigation, multiple graphs and an inspector.

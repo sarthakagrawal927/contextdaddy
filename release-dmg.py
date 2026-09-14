@@ -34,7 +34,7 @@ def main():
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     stage = output / "image-contents"
-    app = stage / "StorageDaddy.app"
+    app = stage / "storagedaddy.app"
     for name in ["MacOS", "Helpers", "Resources"]:
         (app / "Contents" / name).mkdir(parents=True, exist_ok=True)
     # Assemble only known public inputs, never the artifacts directory or logs.
@@ -61,8 +61,8 @@ def main():
     (stage / "Applications").symlink_to("/Applications")
     shutil.copyfile(ROOT / "DISTRIBUTION.md", stage / "Start Here.txt")
     version = info["CFBundleShortVersionString"]
-    dmg = output / f"StorageDaddy-{version}-beta-arm64.dmg"
-    run("hdiutil", "create", "-volname", "StorageDaddy", "-srcfolder", stage,
+    dmg = output / f"storagedaddy-{version}-beta-arm64.dmg"
+    run("hdiutil", "create", "-volname", "storagedaddy", "-srcfolder", stage,
         "-format", "UDZO", "-ov", dmg)
     run("codesign", "--force", "--sign", args.identity, "--timestamp", dmg)
     run("hdiutil", "verify", dmg)

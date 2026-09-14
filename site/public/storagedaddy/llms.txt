@@ -1,6 +1,6 @@
 # storagedaddy
 
-> Open-source Mac storage analyzer for developers. Free during early access.
+> Open-source Mac storage analyzer for developers. Download now and get all future versions free forever.
 
 ## Product
 - [Product guide](https://storagedaddy.significanthobbies.com/index.md): Features, system requirements, cleanup safeguards, privacy and archive limitations.

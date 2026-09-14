@@ -22,7 +22,7 @@ struct LiveScanView: View {
                         Text(SpeedFormat.entriesPerSecond(entries: progress.entries, elapsed: progress.elapsed))
                             .monospacedDigit().foregroundStyle(Tints.mint)
                         Text(processDiskReadRateText).monospacedDigit().foregroundStyle(Tints.secondaryText)
-                            .help("Live metadata I/O charged by macOS to StorageDaddy. This is not SSD throughput. Entries per second helps compare scans with similar scope on this Mac.")
+                            .help("Live metadata I/O charged by macOS to storagedaddy. This is not SSD throughput. Entries per second helps compare scans with similar scope on this Mac.")
                         if let rss = m.scanPeakRSS { Text("\(DiskFormat.bytes(Int64(clamping: rss))) sampled peak RSS").font(.caption).foregroundStyle(Tints.secondaryText) }
                     }
                 }

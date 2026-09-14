@@ -44,7 +44,7 @@ private final class AISessionsModel: ObservableObject {
             report = result
         } catch {
             guard !Task.isCancelled, loadGeneration == generation else { return }
-            errorMessage = "StorageDaddy couldn’t finish inventorying local AI history. Try Refresh after checking folder access."
+            errorMessage = "storagedaddy couldn’t finish inventorying local AI history. Try Refresh after checking folder access."
         }
     }
 }
@@ -355,7 +355,7 @@ struct AISessionsView: View {
                 Spacer()
                 Button("Done") { showCoverage = false }
             }
-            Text("StorageDaddy inventories regular JSONL transcript files in the standard local Claude and Codex folders. Claude totals include nested subagent transcripts. It does not display conversation text, upload data, alter files, or require a storage scan.")
+            Text("storagedaddy inventories regular JSONL transcript files in the standard local Claude and Codex folders. Claude totals include nested subagent transcripts. It does not display conversation text, upload data, alter files, or require a storage scan.")
                 .foregroundStyle(Tints.secondaryText)
             if let coverage = model.report?.coverage {
                 Text("\(coverage.visitedEntries.formatted()) entries checked · \(coverage.unreadableCount.formatted()) traversal/stat failures · \(coverage.skippedLinks.formatted()) links skipped")

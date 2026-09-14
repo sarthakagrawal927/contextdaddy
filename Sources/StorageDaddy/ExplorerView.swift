@@ -81,8 +81,9 @@ struct ExplorerView: View {
                 if let icon = StorageDaddyAppDelegate.brandIcon {
                     Image(nsImage: icon).resizable().scaledToFit().frame(width: 120, height: 120)
                 }
-                Text("StorageDaddy").font(.system(size: 28, weight: .semibold, design: .rounded))
+                Text("storagedaddy").font(.system(size: 28, weight: .semibold, design: .rounded))
                 Text("Make room for what’s next.").foregroundStyle(Tints.secondaryText)
+                Text("Yours free forever, including all future versions.").font(.callout).foregroundStyle(Tints.mint)
                 Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development")")
                     .font(.caption).foregroundStyle(Tints.secondaryText)
                 Button("Done") { m.showAbout = false }.buttonStyle(StorageButtonStyle(prominent: true))
@@ -107,13 +108,13 @@ struct ExplorerView: View {
         case .aiSessions: m.aiSessionsSection == .archive ? "Local conversation archive" : "Local AI history inventory"
         case .aiContext: "Local AI context inventory"
         case .applications: "Installed applications"
-        case .acknowledgments: "About StorageDaddy"
+        case .acknowledgments: "About storagedaddy"
         default: m.progress
         }
     }
 
     private var processDiskReadRateHelp: String {
-        "Average metadata I/O charged by macOS to the StorageDaddy process during this scan. It is not SSD throughput or scanned size divided by time. Cached metadata can report 0 MB/s; other work in this process can contribute. Entries per second helps compare scans with similar scope on this Mac."
+        "Average metadata I/O charged by macOS to the storagedaddy process during this scan. It is not SSD throughput or scanned size divided by time. Cached metadata can report 0 MB/s; other work in this process can contribute. Entries per second helps compare scans with similar scope on this Mac."
     }
 
     private func processDiskReadRateText(bytesRead: UInt64?, elapsed: Double) -> String {
