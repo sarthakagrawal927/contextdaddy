@@ -14,11 +14,16 @@ private enum AISessionSort: String, CaseIterable {
 }
 
 @MainActor
-private final class AISessionsModel: ObservableObject {
+final class AISessionsModel: ObservableObject {
     @Published var report: AISessionInventoryReport?
     @Published var loading = false
     @Published var errorMessage: String?
     private var loadGeneration = 0
+    private let discover: @Sendable () throws -> AISessionInventoryReport
+
+    init(discover: @escaping @Sendable () throws -> AISessionInventoryReport = { try AISessionInventory.discover() }) {
+        self.discover = discover
+    }
 
     func load() async {
         loadGeneration += 1
@@ -30,8 +35,9 @@ private final class AISessionsModel: ObservableObject {
                 loading = false
             }
         }
+        let discover = self.discover
         let worker = Task.detached(priority: .utility) {
-            try AISessionInventory.discover()
+            try discover()
         }
         do {
             let result = try await withTaskCancellationHandler {

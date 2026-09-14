@@ -3,13 +3,13 @@
     <channel>
         <title>storagedaddy</title>
         <item>
-            <title>storagedaddy 0.1.2 (79)</title>
-            <pubDate>Mon, 14 Sep 2026 19:28:53 +0530</pubDate>
-            <sparkle:version>79</sparkle:version>
+            <title>storagedaddy 0.1.2 (80)</title>
+            <pubDate>Mon, 14 Sep 2026 20:40:08 +0530</pubDate>
+            <sparkle:version>80</sparkle:version>
             <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://storagedaddy.significanthobbies.com/updates/storagedaddy-0.1.2-build79-arm64.dmg" length="7622888" type="application/octet-stream" sparkle:edSignature="sd/Lq5ZufzB4xBKbzwfSNk0GC7iPEUjV8A663I3RtwZ/ClItT8lMN76wUzLC6eiwhDaLBEJErjJ5GaL5et+NBA==" />
-        <description>Settings now includes Acknowledgments. storagedaddy is categorized under Utilities and uses lowercase branding throughout. Everyone who downloads during early access gets all future versions free forever.</description></item>
+            <enclosure url="https://storagedaddy.significanthobbies.com/updates/storagedaddy-0.1.2-build80-arm64.dmg" length="7625164" type="application/octet-stream" sparkle:edSignature="CJDhQ3+gKaJgI4NjC1j8X0c+mkSEbWjbx00fGYM72oBwtFOrTr7Q5vjZuDcYWirMaWkIrGmJBQYi7TbIndbSBg==" />
+        <description>Lower memory use for large scans, with the same filesystem and cleanup checks. Failed Applications refreshes clearly identify retained results. AI inventory refresh handling is covered by new regression tests. Everyone who downloads during early access gets all future versions free forever.</description></item>
     </channel>
 </rss>

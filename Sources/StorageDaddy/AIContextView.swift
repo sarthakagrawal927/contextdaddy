@@ -34,6 +34,13 @@ private struct SkillPreview: Identifiable {
     @Published var status = ""
 
     private var generation = UUID()
+    private let discover: @Sendable ([URL]) throws -> AIContextDiscoveryReport
+
+    init(discover: @escaping @Sendable ([URL]) throws -> AIContextDiscoveryReport = { roots in
+        try AIContextDiscovery.discover(scan: nil, configuration: .init(additionalRoots: roots))
+    }) {
+        self.discover = discover
+    }
 
     func load() async {
         let request = UUID()
@@ -44,8 +51,9 @@ private struct SkillPreview: Identifiable {
         status = "Reading local context metadata…"
         defer { if generation == request { loading = false } }
         let roots = extraRoots.map { URL(fileURLWithPath: $0, isDirectory: true) }
+        let discover = self.discover
         let worker = Task.detached(priority: .utility) {
-            let report = try AIContextDiscovery.discover(scan: nil, configuration: .init(additionalRoots: roots))
+            let report = try discover(roots)
             return (report, AIContextProjectCatalog.projects(from: report))
         }
         do {

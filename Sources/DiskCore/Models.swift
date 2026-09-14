@@ -3,9 +3,11 @@ import Foundation
 public struct DiskNode: Codable, Sendable, Identifiable {
     public var id: Int
     public var parent: Int?
-    public var name: String
+    // Pack flags into the optional parent's alignment padding. This keeps the
+    // same public/Codable fields while saving eight bytes per node on arm64.
     public var isDirectory: Bool
     public var isSymlink: Bool
+    public var name: String
     public var logicalBytes: Int64
     public var allocatedBytes: Int64
     public var modified: Date

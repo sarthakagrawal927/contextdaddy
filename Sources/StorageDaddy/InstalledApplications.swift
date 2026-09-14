@@ -152,7 +152,8 @@ enum ApplicationSort: String, CaseIterable {
             } catch {
                 guard let self, self.generation == version else { return }
                 self.loading = false
-                self.status = error is CancellationError ? "Discovery cancelled" : "Unable to finish app discovery. Refresh to try again."
+                self.status = error is CancellationError ? "Discovery cancelled" :
+                    (self.hasLoaded ? "Refresh failed. Showing the previous inventory. " : "") + "Unable to finish app discovery. Refresh to try again."
             }
         }
     }

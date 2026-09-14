@@ -100,6 +100,16 @@ import DiskCore
                 s = try await DiskScanner.scan(root: root, backend: backend, parallelism: workerCount)
             }
             print("\(s.nodes.count) entries, \(s.nodes.first?.allocatedBytes ?? 0) allocated bytes, \(s.elapsed) s, \(s.skipped) skipped")
+            var usage = rusage(); getrusage(RUSAGE_SELF, &usage)
+            let metrics: [String: Any] = [
+                "entriesPerSecond": Double(s.nodes.count) / max(s.elapsed, 0.000001),
+                "processDiskReadBytes": s.processDiskReadBytes.map { $0 as Any } ?? NSNull(),
+                "peakRSSBytes": usage.ru_maxrss,
+                "retainedRSSBytes": ProcessMemory.residentBytes().map { $0 as Any } ?? NSNull(),
+                "nodeStrideBytes": MemoryLayout<DiskNode>.stride,
+                "nodeCapacity": s.nodes.capacity
+            ]
+            print(String(data: try JSONSerialization.data(withJSONObject: metrics, options: [.sortedKeys]), encoding: .utf8)!)
             return
         }
         if args[1] == "compare-live" {
