@@ -482,6 +482,14 @@ struct AgeSummary: Sendable {
         developerReport?.findings.first(where: { $0.id == id })?.category
     }
 
+    /// Auto Cleaner suggestions: stale, usually-regenerable developer folders.
+    /// Notify-only — staging still goes through preflight and the review list.
+    var autoCleanerSuggestions: [AutoCleanerSuggestion] {
+        guard let scan else { return [] }
+        return AutoCleaner.suggestions(scan: scan, findings: developerReport?.findings ?? [])
+            .filter { !staged.contains($0.id) }
+    }
+
     func unstage(_ id: Int) {
         staged.remove(id)
         incompleteCleanup.removeValue(forKey: id)
