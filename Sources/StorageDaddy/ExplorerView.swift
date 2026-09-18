@@ -433,7 +433,9 @@ struct InspectorView: View {
                     if !n.isDirectory { Button("Quick Look", systemImage: "eye") { preview = PreviewSelection(url: scan.url(for: n.id)) } }
                     Button("Copy Path", systemImage: "doc.on.doc") { m.copyPath(n.id) }
                     if n.isDirectory {
-                        Button("Copy Ask AI Prompt", systemImage: "sparkles") { m.copyFolderPrompt(n.id) }
+                        Button("Explain This Folder", systemImage: "sparkles") { m.explainFolder(n.id) }
+                            .help("Ask your local Claude or Codex install to explain this folder. Only its path and measurements are sent.")
+                        Button("Copy Ask AI Prompt", systemImage: "doc.on.doc") { m.copyFolderPrompt(n.id) }
                             .help("Copy a ready-to-paste prompt that asks an AI assistant to explain this folder. Nothing is uploaded.")
                     }
                     if n.isDirectory { Button("Open Folder", systemImage: "folder") { m.open(n) } }
@@ -458,7 +460,10 @@ struct InspectorView: View {
                     }
                 }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
             } else { StorageEmptyView("Inspect an item", systemImage: "cursorarrow.click", description: Text("Select a file or folder to see its details.")).padding(.top, 70) }
-        }.sheet(item: $preview) { item in
+        }.sheet(item: $m.folderExplanation) { state in
+            FolderExplanationView(state: state)
+        }
+        .sheet(item: $preview) { item in
             VStack(spacing: 0) {
                 HStack {
                     Text(item.url.lastPathComponent).font(.headline).lineLimit(1)

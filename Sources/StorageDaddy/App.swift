@@ -132,6 +132,7 @@ struct AgeSummary: Sendable {
     @Published var liveProgress: ScanProgress?
     @Published var busy = false
     @Published var progress = "Choose what to scan to begin"
+    @Published var folderExplanation: FolderExplanationState?
     @Published var message: String?
     @Published var staged: Set<Int> = []
     @Published private(set) var incompleteCleanup: [Int: CleanupIncompleteReview] = [:]
@@ -334,31 +335,50 @@ struct AgeSummary: Sendable {
     func reveal(_ id: Int) { if let scan { NSWorkspace.shared.activateFileViewerSelecting([scan.url(for: id)]) } }
     func copyPath(_ id: Int) { if let scan { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(scan.url(for: id).path, forType: .string) } }
     func copyFolderPrompt(_ id: Int) {
-        guard let scan, scan.nodes.indices.contains(id) else { return }
-        let node = scan.nodes[id]
-        guard node.isDirectory else { return }
-        let prompt = """
-        Help me understand this folder on my Mac before I change anything.
-
-        Folder: \(scan.url(for: id).path)
-        storagedaddy measured:
-        - On disk: \(DiskFormat.bytes(node.allocatedBytes))
-        - Logical size: \(DiskFormat.bytes(node.logicalBytes))
-        - Immediate items: \(node.children.count.formatted())
-        - Modified: \(node.modified.formatted(date: .abbreviated, time: .shortened))
-
-        Explain:
-        1. What usually creates and uses this folder.
-        2. Whether it is normally safe to remove or clean.
-        3. What could stop working or need to be downloaded or rebuilt afterward.
-        4. The safest way to reduce its size.
-        5. What I should inspect before acting.
-
-        Do not delete or modify anything. If the path is app-specific or ambiguous, say what evidence would confirm it.
-        """
+        guard let prompt = folderPrompt(for: id) else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(prompt, forType: .string)
         progress = "Copied a folder-explanation prompt · Paste it into your AI assistant"
+    }
+    private func folderPrompt(for id: Int) -> String? {
+        guard let scan, scan.nodes.indices.contains(id), scan.nodes[id].isDirectory else { return nil }
+        let node = scan.nodes[id]
+        return FolderExplainer.prompt(
+            path: scan.url(for: id).path,
+            allocatedBytes: node.allocatedBytes,
+            logicalBytes: node.logicalBytes,
+            children: node.children.count,
+            modified: node.modified,
+        )
+    }
+    /// Asks a locally installed agent CLI (Claude, then Codex) to explain the
+    /// folder. Only the folder path and measured sizes are sent; the agent runs
+    /// read-only and can be cancelled. Falls back to the copy-paste prompt when
+    /// no supported CLI is installed.
+    func explainFolder(_ id: Int) {
+        guard let scan, let prompt = folderPrompt(for: id) else { return }
+        guard let (agent, executable) = FolderExplainer.detectAgents().first else {
+            copyFolderPrompt(id)
+            progress = "No local Claude or Codex install found · Prompt copied to paste into your AI assistant"
+            return
+        }
+        do {
+            let task = try FolderExplainer.start(agent: agent, executable: executable, prompt: prompt)
+            folderExplanation = FolderExplanationState(folderPath: scan.url(for: id).path, agentLabel: agent.label, prompt: prompt, task: task)
+            Task.detached {
+                let result = Result(catching: { try task.wait() })
+                await MainActor.run { [weak self] in
+                    guard let self, self.folderExplanation?.task === task else { return }
+                    self.folderExplanation?.result = result
+                }
+            }
+        } catch {
+            progress = "Could not start \(agent.label) · \(error.localizedDescription)"
+        }
+    }
+    func dismissFolderExplanation() {
+        folderExplanation?.task.cancel()
+        folderExplanation = nil
     }
     func openConversationArchive(provider: ConversationArchiveModel.Provider = .all) {
         if !conversationArchive.busy { conversationArchive.provider = provider }
@@ -620,4 +640,13 @@ struct AgeSummary: Sendable {
             snapshotHistoryWarning = "Couldn’t load saved history. Try refreshing. Your saved files remain on this Mac."
         }
     }
+}
+
+struct FolderExplanationState: Identifiable {
+    let id = UUID()
+    let folderPath: String
+    let agentLabel: String
+    let prompt: String
+    let task: FolderExplainTask
+    var result: Result<FolderExplanationResult, Error>?
 }
