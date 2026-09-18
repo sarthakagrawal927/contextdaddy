@@ -291,6 +291,9 @@ struct CleanupView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack { Text("Review Cleanup").font(.largeTitle.weight(.semibold)); DoodleArt(topic: .cleanup).frame(width: 72, height: 72); Spacer(); if m.showCleanup { Button("Done") { m.showCleanup = false } } }
             Text(m.staged.isEmpty ? "Add files and folders from Explore or Developer Insights. Nothing is removed until you confirm." : "Review the list before moving it to Trash. Items added with an incomplete check are marked below. We check paths and known contents again after confirmation.").foregroundStyle(Tints.secondaryText)
+            if let scan = m.scan, !m.autoCleanerSuggestions.isEmpty {
+                AutoCleanerCard(scan: scan)
+            }
             if m.staged.isEmpty, !m.lastTrashedURLs.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Moved to Trash", systemImage: "checkmark.circle.fill").font(.title2).foregroundStyle(Tints.mint)
@@ -333,5 +336,57 @@ struct CleanupView: View {
                 if m.monitoring { Text("Stop monitoring before cleanup.").font(.caption).foregroundStyle(Tints.secondaryText) }
             }
         }.padding(24).background(Color.black).buttonStyle(StorageButtonStyle())
+    }
+}
+
+/// Auto Cleaner card: stale, usually-regenerable folders surfaced for review.
+/// Suggestions never delete anything — each one stages through the same
+/// preflight and review list as a manual pick.
+private struct AutoCleanerCard: View {
+    let scan: ScanResult
+    @EnvironmentObject var m: ExplorerModel
+
+    private var suggestions: [AutoCleanerSuggestion] { Array(m.autoCleanerSuggestions.prefix(6)) }
+    private var totalBytes: Int64 { m.autoCleanerSuggestions.reduce(0) { $0 + $1.allocatedBytes } }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "wand.and.stars").foregroundStyle(Tints.yellow)
+                Text("Auto Cleaner").font(.headline)
+                Text("\(m.autoCleanerSuggestions.count) stale \(m.autoCleanerSuggestions.count == 1 ? "folder" : "folders") · \(DiskFormat.bytes(totalBytes))")
+                    .font(.caption).foregroundStyle(Tints.secondaryText)
+            }
+            Text("Suggestions only — nothing moves automatically. Modification dates are metadata, not proof a folder is unused.")
+                .font(.caption).foregroundStyle(Tints.secondaryText)
+            ForEach(suggestions) { suggestion in
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: suggestion.category.symbol)
+                        .foregroundStyle(suggestion.category.color).font(.title3).frame(width: 26)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(StorageLabels.name(scan.nodes[suggestion.id])).font(.callout)
+                        Text("\(suggestion.category.title) · unchanged \(suggestion.staleDays) days")
+                            .font(.caption).foregroundStyle(Tints.secondaryText)
+                        Text(suggestion.path).font(.caption2).foregroundStyle(Tints.secondaryText.opacity(0.8))
+                            .lineLimit(1).truncationMode(.middle).help(suggestion.path)
+                    }
+                    Spacer()
+                    Text(DiskFormat.bytes(suggestion.allocatedBytes)).font(.caption).monospacedDigit()
+                    Button("Inspect") {
+                        m.showCleanup = false
+                        m.workspace = .explore
+                        if scan.nodes.indices.contains(suggestion.id) { m.open(scan.nodes[suggestion.id]) }
+                    }.font(.caption)
+                    Button("Add for Review") { m.stage(suggestion.id) }.font(.caption).disabled(m.busy)
+                }
+            }
+            if m.autoCleanerSuggestions.count > suggestions.count {
+                Text("+ \(m.autoCleanerSuggestions.count - suggestions.count) more in Developer Insights")
+                    .font(.caption).foregroundStyle(Tints.secondaryText)
+            }
+        }
+        .padding(14)
+        .background(Tints.secondaryText.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
