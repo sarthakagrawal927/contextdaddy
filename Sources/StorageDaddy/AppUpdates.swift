@@ -11,6 +11,7 @@ import Sparkle
     private var controller: SPUStandardUpdaterController?
     private weak var model: ExplorerModel?
     private var deferredInstall: (() -> Void)?
+    private var pendingCheck = false
     private var subscriptions: Set<AnyCancellable> = []
 
     func start(model: ExplorerModel) {
@@ -37,6 +38,7 @@ import Sparkle
 
     func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
         guard isIdle else {
+            if updateCheck == .updatesInBackground { pendingCheck = true }
             throw NSError(domain: "StorageDaddy.Updates", code: 1, userInfo: [NSLocalizedDescriptionKey: "Finish the current scan, export or cleanup review before checking for updates."])
         }
     }
@@ -49,7 +51,12 @@ import Sparkle
     }
 
     private func resumeWhenIdle() {
-        guard isIdle, let install = deferredInstall else { return }
+        guard isIdle else { return }
+        if pendingCheck {
+            pendingCheck = false
+            controller?.updater.checkForUpdatesInBackground()
+        }
+        guard let install = deferredInstall else { return }
         deferredInstall = nil
         waitingForIdle = false
         install()

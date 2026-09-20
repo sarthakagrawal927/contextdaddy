@@ -6,7 +6,7 @@
       "sha256": "917592e227a816555d6a1e5c9f0612ac860c0a93f541237a6463225a4a0bdc4c",
       "source": "https://www.anthropic.com/press-kit",
       "archivePath": "Anthropic media resources/Anthropic logos/Claude logos/4 Claude icon/PNG/ClaudeIcon-Rounded.png",
-      "note": "sha256 reflects the ImgBot-optimized bytes committed 2026-09-19; source asset unchanged.",
+      "note": "sha256 reflects the ImgBot-optimized bytes committed 2026-09-13; source asset unchanged.",
       "owner": "Anthropic PBC"
     },
     {
@@ -16,7 +16,7 @@
       "sourceBundleIdentifier": "com.openai.codex",
       "sourceTeamIdentifier": "2DC432GLL2",
       "conversion": "macOS sips ICNS to PNG at the source 1024 by 1024 pixel size",
-      "note": "sha256 reflects the ImgBot-optimized bytes committed 2026-09-19; source asset unchanged.",
+      "note": "sha256 reflects the ImgBot-optimized bytes committed 2026-09-13; source asset unchanged.",
       "guidelines": "https://openai.com/brand/",
       "owner": "OpenAI"
     }
