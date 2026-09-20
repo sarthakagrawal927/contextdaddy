@@ -2,9 +2,9 @@
 
 **Yours free forever, including all future versions.** Everyone who downloads during early access gets all future versions free forever. No trial expiry.
 
-A free, open-source Mac storage analyzer for developers. Find large folders,
-understand caches and build output, and review every cleanup before moving
-anything to Trash.
+A free, open-source Mac footprint manager for developers. Understand what
+projects, applications and AI tools leave behind; find large, stale or
+replaceable material; and review every cleanup before moving anything to Trash.
 
 [Download the Mac app](https://storagedaddy.significanthobbies.com/download) ·
 [Website](https://storagedaddy.significanthobbies.com/) ·
@@ -55,8 +55,8 @@ cd storagedaddy
 swift build -c release
 
 # Build the included, compatible archive helper.
-python3 prepare-memory-pack.py --source Vendor/MemoryPack --build
-python3 package-app.py
+python3 scripts/prepare-memory-pack.py --source Vendor/MemoryPack --build
+python3 scripts/package-app.py
 open artifacts/StorageDaddy.app
 ```
 
@@ -68,7 +68,7 @@ your own update feed and signing key before distribution.
 
 ```sh
 swift test
-python3 -m unittest test_sparkle_support
+(cd scripts && python3 -m unittest test_sparkle_support)
 cargo test --locked --manifest-path Vendor/MemoryPack/Cargo.toml
 ```
 
