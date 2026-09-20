@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import sparkle_support
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def run(*args):
@@ -30,7 +30,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True, help="New output directory; existing paths are never overwritten")
     parser.add_argument("--notary-profile", help="Existing Keychain profile name; never pass credentials here")
     args = parser.parse_args()
-    run("python3", ROOT / "package-app.py", "--check")
+    run("python3", ROOT / "scripts" / "package-app.py", "--check")
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     stage = output / "image-contents"

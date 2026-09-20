@@ -19,3 +19,4 @@ jobs:
       - run: swift test
       - run: swift build -c release
       - run: python3 -m unittest test_sparkle_support
+        working-directory: scripts

@@ -14,7 +14,7 @@ terms; this repository does not grant rights to third-party trademarks.
   https://github.com/Significant-Hobbies/chatgpt-memory-insights/tree/main/packer
   under MIT. The compatible source is included in `Vendor/MemoryPack`, with
   its upstream origin and local changes documented in `UPSTREAM.md`.
-  `prepare-memory-pack.py` collects the helper's license and the
+  `scripts/prepare-memory-pack.py` collects the helper's license and the
   notices of its Cargo dependencies into the distributed app.
 - **ClaudeOfficial.png** is Anthropic's provider artwork, obtained from its
   official press kit: https://www.anthropic.com/press-kit. It is excluded from

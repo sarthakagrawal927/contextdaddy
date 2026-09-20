@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 SUPPORT = ROOT / "artifacts" / "MemoryPackSupport"
 
 

@@ -4,14 +4,14 @@ from pathlib import Path
 import shutil
 import subprocess
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 FRAMEWORK = ROOT / ".build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
-PUBLIC_KEY = ROOT / "Assets/SparklePublicKey.txt"
+PUBLIC_KEY = ROOT / "Support" / "SparklePublicKey.txt"
 FEED_URL = "https://storagedaddy.significanthobbies.com/updates/appcast.xml"
 
 def configuration():
     if not PUBLIC_KEY.is_file():
-        raise RuntimeError("Sparkle signing is not configured. Generate a dedicated Keychain key with Sparkle's generate_keys --account storagedaddy-updates, then save ONLY its public key to Assets/SparklePublicKey.txt.")
+        raise RuntimeError("Sparkle signing is not configured. Generate a dedicated Keychain key with Sparkle's generate_keys --account storagedaddy-updates, then save ONLY its public key to Support/SparklePublicKey.txt.")
     key = PUBLIC_KEY.read_text().strip()
     if len(base64.b64decode(key, validate=True)) != 32:
         raise ValueError("Sparkle public key must decode to 32 bytes")

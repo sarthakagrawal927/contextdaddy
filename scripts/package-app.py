@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import sparkle_support
 
-root = Path(__file__).resolve().parent
+root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
 parser.add_argument("binary", nargs="?", type=Path, default=root / ".build/release/StorageDaddy")
 parser.add_argument("--check", action="store_true", help="validate prepared support without changing the app bundle")
@@ -21,11 +21,11 @@ support = root / "artifacts/MemoryPackSupport"
 required_support = [support / "memory-pack", support / "THIRD_PARTY_NOTICES.txt", support / "provenance.json", support / "cargo-metadata.json"]
 missing = [path for path in required_support if not path.is_file()]
 if missing:
-    raise SystemExit("Prepare Memory Pack support first: python3 prepare-memory-pack.py --source ../chatgpt-memory-insights/packer [--build]")
+    raise SystemExit("Prepare Memory Pack support first: python3 scripts/prepare-memory-pack.py --source ../chatgpt-memory-insights/packer [--build]")
 provenance = json.loads((support / "provenance.json").read_text())
 digest = hashlib.sha256((support / "memory-pack").read_bytes()).hexdigest()
 if digest != provenance.get("binarySha256"):
-    raise SystemExit("Prepared memory-pack binary does not match provenance.json; rerun prepare-memory-pack.py")
+    raise SystemExit("Prepared memory-pack binary does not match provenance.json; rerun scripts/prepare-memory-pack.py")
 if (support / "memory-pack").stat().st_mode & 0o111 == 0:
     raise SystemExit("Prepared memory-pack helper is not executable")
 icon_provenance_path = root / "Assets/ProviderIcons-provenance.json"
