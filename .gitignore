@@ -1,0 +1,23 @@
+.build/
+.swiftpm/
+artifacts/
+.DS_Store
+__pycache__/
+
+dist/
+
+# Private local receipts
+.fleet/
+PROJECT_STATUS.md
+*.dmg
+*.zip
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+
+# Retain local artwork experiments without publishing abandoned variants.
+Assets/*-master*
+Assets/*-before-*
+Assets/*-preview*
+Assets/*.iconset/

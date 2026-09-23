@@ -1,0 +1,302 @@
+import Foundation
+import CryptoKit
+
+#if canImport(Darwin)
+import Darwin
+#else
+import Glibc
+#endif
+
+public enum SkillPolicyResolver {
+    public static func resolve(report: AIContextDiscoveryReport) -> SkillCatalogSnapshot {
+        let groups = Dictionary(grouping: report.items.filter { $0.kind == .skill }) {
+            $0.resolvedPath ?? $0.path
+        }
+        var records = groups.compactMap { physicalPath, items in
+            makeRecord(physicalPath: physicalPath, items: items)
+        }
+        let recordsByName = Dictionary(grouping: records, by: { $0.name.lowercased() })
+        records = records.map { record in
+            var record = record
+            let activeRuntimes = Set(record.exposedRuntimes)
+            let overlapping = recordsByName[record.name.lowercased(), default: []].filter { candidate in
+                candidate.id == record.id || !activeRuntimes.isDisjoint(with: candidate.exposedRuntimes)
+            }
+            record.definitionConflictCount = max(1, overlapping.count)
+            return record
+        }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        return SkillCatalogSnapshot(records: records, coverage: report.coverage, generatedAt: Date())
+    }
+
+    private static func makeRecord(physicalPath: String, items: [AIContextItem]) -> SkillRecord? {
+        guard let first = items.sorted(by: { $0.path < $1.path }).first else { return nil }
+        let document = readDocument(at: URL(fileURLWithPath: physicalPath))
+        let metadata = document.metadata
+        let name = metadata.name ?? first.name
+        let exposures = items.map {
+            SkillExposure(
+                logicalPath: $0.path,
+                resolvedPath: $0.resolvedPath ?? $0.path,
+                source: $0.source,
+                scope: $0.scope,
+                provider: $0.provider,
+                applicability: $0.applicability
+            )
+        }.sorted { $0.logicalPath < $1.logicalPath }
+        let activeProviders = Set(exposures.filter { $0.applicability != .installedOnly }.map(\.provider))
+        let installedProviders = Set(exposures.filter { $0.applicability == .installedOnly }.map(\.provider))
+        let policies = AgentRuntime.allCases.map {
+            policy(
+                for: $0,
+                name: name,
+                physicalPath: physicalPath,
+                metadata: metadata,
+                activeProviders: activeProviders,
+                installedProviders: installedProviders
+            )
+        }
+        return SkillRecord(
+            id: physicalPath,
+            name: name,
+            description: metadata.description ?? "No description declared.",
+            logicalBytes: first.logicalBytes,
+            modified: first.modified,
+            exposures: exposures,
+            policies: policies,
+            contentFingerprint: document.fingerprint
+        )
+    }
+
+    private static func policy(
+        for runtime: AgentRuntime,
+        name: String,
+        physicalPath: String,
+        metadata: Frontmatter,
+        activeProviders: Set<AIContextProvider>,
+        installedProviders: Set<AIContextProvider>
+    ) -> SkillRuntimePolicy {
+        let invocation = switch runtime {
+        case .codex: "$\(name)"
+        case .claude, .cursor, .grok: "/\(name)"
+        case .devin: "@skills:\(name)"
+        }
+        let exposed = providers(activeProviders, expose: runtime)
+        guard exposed else {
+            let cachedOnly = providers(installedProviders, expose: runtime)
+            return SkillRuntimePolicy(
+                runtime: runtime,
+                mode: .unsupported,
+                explicit: true,
+                reason: cachedOnly
+                    ? "An installed cache copy was found, but no active skill exposure for this runtime was discovered."
+                    : "No skill exposure for this runtime was discovered.",
+                invocation: invocation,
+                isExposed: false
+            )
+        }
+
+        if runtime == .codex, let implicit = codexImplicitPolicy(skillPath: physicalPath) {
+            return SkillRuntimePolicy(
+                runtime: runtime,
+                mode: implicit ? .automatic : .manualOnly,
+                explicit: true,
+                reason: implicit ? "agents/openai.yaml allows implicit invocation." : "agents/openai.yaml disables implicit invocation.",
+                invocation: invocation
+            )
+        }
+
+        if metadata.disableModelInvocation == true {
+            return SkillRuntimePolicy(
+                runtime: runtime,
+                mode: .manualOnly,
+                explicit: true,
+                reason: "SKILL.md disables model invocation.",
+                invocation: invocation,
+                desiredMode: .manualOnly
+            )
+        }
+        if metadata.userInvocable == false {
+            return SkillRuntimePolicy(
+                runtime: runtime,
+                mode: .modelOnly,
+                explicit: true,
+                reason: "SKILL.md disables direct user invocation.",
+                invocation: invocation,
+                desiredMode: .modelOnly
+            )
+        }
+        if runtime == .devin, let triggers = metadata.triggers {
+            let normalized = Set(triggers.map { $0.lowercased() })
+            if normalized == ["user"] {
+                return SkillRuntimePolicy(runtime: runtime, mode: .manualOnly, explicit: true, reason: "Devin trigger metadata allows user invocation only.", invocation: invocation, desiredMode: .manualOnly)
+            }
+            if normalized == ["model"] {
+                return SkillRuntimePolicy(runtime: runtime, mode: .modelOnly, explicit: true, reason: "Devin trigger metadata allows model invocation only.", invocation: invocation, desiredMode: .modelOnly)
+            }
+        }
+        return SkillRuntimePolicy(
+            runtime: runtime,
+            mode: .automatic,
+            explicit: false,
+            reason: "No portable restriction was found; runtime default is assumed.",
+            invocation: invocation
+        )
+    }
+
+    private static func providers(_ providers: Set<AIContextProvider>, expose runtime: AgentRuntime) -> Bool {
+        switch runtime {
+        case .codex: providers.contains(.codex) || providers.contains(.agents)
+        case .claude: providers.contains(.claude)
+        case .cursor: providers.contains(.cursor)
+        case .devin: providers.contains(.devin)
+        case .grok: providers.contains(.grok)
+        }
+    }
+
+    private static func codexImplicitPolicy(skillPath: String) -> Bool? {
+        let url = URL(fileURLWithPath: skillPath).deletingLastPathComponent()
+            .appendingPathComponent("agents/openai.yaml")
+        guard let text = try? BoundedTextReader.read(url: url, maximumBytes: 64 * 1024) else { return nil }
+        for line in text.split(separator: "\n") {
+            let clean = line.split(separator: "#", maxSplits: 1).first?.trimmingCharacters(in: .whitespaces) ?? ""
+            if clean.hasPrefix("allow_implicit_invocation:") {
+                return parseBool(String(clean.dropFirst("allow_implicit_invocation:".count)))
+            }
+        }
+        return nil
+    }
+
+    private static func readDocument(at url: URL) -> SkillDocumentMetadata {
+        guard let text = try? BoundedTextReader.read(url: url.resolvingSymlinksInPath(), maximumBytes: 64 * 1024) else {
+            return SkillDocumentMetadata(metadata: Frontmatter(), fingerprint: nil)
+        }
+        return SkillDocumentMetadata(
+            metadata: readMetadata(text: text),
+            fingerprint: SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined()
+        )
+    }
+
+    private static func readMetadata(text: String) -> Frontmatter {
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        guard lines.first?.trimmingCharacters(in: .whitespacesAndNewlines) == "---" else {
+            return Frontmatter()
+        }
+        var metadata = Frontmatter()
+        var inTriggers = false
+        var collectingDescription = false
+        for line in lines.dropFirst() {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed == "---" { break }
+            if collectingDescription, line.hasPrefix(" ") || line.hasPrefix("\t") {
+                if !trimmed.isEmpty {
+                    metadata.description = [metadata.description, trimmed].compactMap { $0 }.joined(separator: " ")
+                }
+                continue
+            }
+            collectingDescription = false
+            if trimmed.hasPrefix("name:") {
+                metadata.name = scalar(after: "name:", in: trimmed)
+                inTriggers = false
+            } else if trimmed.hasPrefix("description:") {
+                let description = scalar(after: "description:", in: trimmed)
+                if description == ">" || description == "|" {
+                    metadata.description = nil
+                    collectingDescription = true
+                } else {
+                    metadata.description = description
+                }
+                inTriggers = false
+            } else if trimmed.hasPrefix("disable-model-invocation:") {
+                metadata.disableModelInvocation = parseBool(scalar(after: "disable-model-invocation:", in: trimmed))
+                inTriggers = false
+            } else if trimmed.hasPrefix("user-invocable:") {
+                metadata.userInvocable = parseBool(scalar(after: "user-invocable:", in: trimmed))
+                inTriggers = false
+            } else if trimmed.hasPrefix("triggers:") {
+                inTriggers = true
+                let inline = scalar(after: "triggers:", in: trimmed)
+                if inline.hasPrefix("[") {
+                    metadata.triggers = inline.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+                        .split(separator: ",").map { cleanScalar(String($0)) }
+                    inTriggers = false
+                }
+            } else if inTriggers, trimmed.hasPrefix("-") {
+                metadata.triggers = (metadata.triggers ?? []) + [cleanScalar(String(trimmed.dropFirst()))]
+            } else if !line.hasPrefix(" ") && !line.hasPrefix("\t") {
+                inTriggers = false
+            }
+        }
+        return metadata
+    }
+
+    private static func scalar(after key: String, in line: String) -> String {
+        cleanScalar(String(line.dropFirst(key.count)))
+    }
+
+    private static func cleanScalar(_ value: String) -> String {
+        let value = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.count >= 2, let first = value.first, let last = value.last,
+           (first == "\"" && last == "\"") || (first == "'" && last == "'") {
+            return String(value.dropFirst().dropLast())
+        }
+        return value
+    }
+
+    private static func parseBool(_ value: String) -> Bool? {
+        switch cleanScalar(value).lowercased() {
+        case "true", "yes", "1": return true
+        case "false", "no", "0": return false
+        default: return nil
+        }
+    }
+}
+
+private struct Frontmatter {
+    var name: String?
+    var description: String?
+    var disableModelInvocation: Bool?
+    var userInvocable: Bool?
+    var triggers: [String]?
+}
+
+private struct SkillDocumentMetadata {
+    let metadata: Frontmatter
+    let fingerprint: String?
+}
+
+enum BoundedTextReader {
+    static func read(url: URL, maximumBytes: Int) throws -> String {
+        var before = stat()
+        guard lstat(url.path, &before) == 0, (before.st_mode & S_IFMT) == S_IFREG else {
+            throw SkillDocumentReadError.unreadable
+        }
+        let descriptor = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        guard descriptor >= 0 else { throw SkillDocumentReadError.unreadable }
+        defer { close(descriptor) }
+        var opened = stat()
+        guard fstat(descriptor, &opened) == 0,
+              opened.st_dev == before.st_dev, opened.st_ino == before.st_ino else {
+            throw SkillDocumentReadError.changedDuringRead
+        }
+        var bytes = [UInt8](repeating: 0, count: maximumBytes + 1)
+        var count = 0
+        while count < bytes.count {
+            let amount = bytes.withUnsafeMutableBytes { buffer in
+                #if canImport(Darwin)
+                Darwin.read(descriptor, buffer.baseAddress?.advanced(by: count), buffer.count - count)
+                #else
+                Glibc.read(descriptor, buffer.baseAddress?.advanced(by: count), buffer.count - count)
+                #endif
+            }
+            if amount > 0 { count += amount }
+            else if amount == 0 { break }
+            else if errno != EINTR { throw SkillDocumentReadError.unreadable }
+        }
+        guard count <= maximumBytes else { throw SkillDocumentReadError.unreadable }
+        let data = Data(bytes.prefix(count))
+        guard !data.contains(0), let text = String(data: data, encoding: .utf8) else {
+            throw SkillDocumentReadError.unreadable
+        }
+        return text
+    }
+}
