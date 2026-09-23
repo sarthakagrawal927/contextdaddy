@@ -1,4 +1,4 @@
-name: CI
+name: ContextDaddy CI
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@v5
-      - run: swift test
+      # DesignSnapshotTests render machine-local inventory and are reviewed on
+      # the release Mac; portable behavior tests run on the clean runner.
+      - run: swift test --skip DesignSnapshotTests
       - run: swift build -c release
-      - run: python3 -m unittest test_sparkle_support
-        working-directory: scripts

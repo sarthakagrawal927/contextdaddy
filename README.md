@@ -1,127 +1,72 @@
-# storagedaddy
+# ContextDaddy
 
-**Yours free forever, including all future versions.** Everyone who downloads during early access gets all future versions free forever. No trial expiry.
+ContextDaddy is a local-first macOS control plane for coding-agent context. It answers two questions without reading secrets or capturing prompt bodies:
 
-A free, open-source Mac footprint manager for developers. Understand what
-projects, applications and AI tools leave behind; find large, stale or
-replaceable material; and review every cleanup before moving anything to Trash.
+1. Which skills can Codex, Claude, Cursor, Devin, and Grok discover, and how can each runtime invoke them?
+2. What are those agents consuming in context tokens, logical network events, and tool calls when trustworthy local telemetry exists?
 
-[Download the Mac app](https://storagedaddy.significanthobbies.com/download) ·
-[Website](https://storagedaddy.significanthobbies.com/) ·
-[Report an issue](https://github.com/sarthakagrawal927/storagedaddy/issues)
+The app combines a focused usage desk with a skills-and-policy ledger. Every value is labelled as measured, derived, estimated, partial, or unavailable. Missing instrumentation stays missing; ContextDaddy does not manufacture precision.
 
-![storagedaddy exploring a generated demo folder](site/public/storagedaddy/assets/storage-explorer.png)
+The primary navigation is **Usage**, **Skills**, **Projects**, and **OpenTelemetry**. **Files & diagnostics** is a secondary, always-visible route to raw source inventory and configuration checks. Skills explains how each agent can use a skill; Projects shows discovered files rather than claiming they entered a live prompt. OpenTelemetry is directly reachable and uses a separate fixed 24-hour window.
 
-The screenshot shows the real app with generated demonstration files. Its
-sizes and timing are not a whole-disk benchmark.
+## Current milestone
 
-## What's included
+- Bounded discovery for global and project skill roots across five agent runtimes.
+- Physical-skill deduplication with every logical exposure retained.
+- Project catalog with per-agent startup-context estimates, pressure bands, and global/parent/local attribution.
+- Full source inventory with provider, kind, and scope filters; deterministic sorting; and paginated drill-down.
+- Safe on-demand previews for eligible instruction, skill, rule, and agent-definition text (256 KiB maximum).
+- Persisted custom discovery roots, explicit scan limits, and previous-result preservation during refresh.
+- Portable frontmatter policy plus Codex `agents/openai.yaml` policy resolution.
+- Agent-scoped governance totals and filters for automatic, manual-only, model-only, disabled, not-exposed, and review-needed skills.
+- Cross-agent sharing coverage that separates all-agent, multi-agent, single-agent, and same-runtime definition conflicts.
+- Exact manual invocation syntax for non-auto skills, with copy actions and expected exposure-root guidance.
+- Installed plugin caches remain inventory evidence but do not count as active runtime exposure.
+- Read-only redundancy review for exact copies, same-name version drift, and likely purpose overlap, with confidence, evidence, affected agents, deterministic keep candidates, and a separate managed-cache queue.
+- Duplicate-byte estimates cover exact local file copies only; the app does not claim context savings or infer that an unobserved skill is unused.
+- In-app local telemetry for Prometheus metrics and Tempo sessions, with no external dashboard required for the core workflow.
+- Usage first scan shows side-by-side Codex/Claude allowance and Devin's separately labelled indexed local history before the long chart. The historical chart has separate ccusage and Devin sources, model/model-provider/project grouping where supported, range, day/week/month scale, generated/cache/cost metrics where available, selectable periods and exact breakdown. Model, project, and session drill-downs remain below. Cache reads, generated tokens, and estimated cost stay separate; unpriced models are flagged.
+- Project grouping is a separately labelled session ledger, joining ccusage session IDs to Codex's read-only thread-index `cwd`, Grok's project paths, and Claude's encoded project slugs. It queries only Codex rollout path and working directory metadata, never prompt bodies. Buckets use session last activity, not an invented daily allocation; totals may not reconcile to daily accounting. Missing session identity remains **Unattributed**. Model-provider labels are inferred from reported model names, not billing endpoints; unknown aliases remain unknown. Devin participates in provider grouping only within its separate indexed source.
+- Provider allowance for Codex and Claude is fetched on **Check both allowances**, or on opening Usage after the user enables the opt-in automatic switch (at most once per 15 minutes). It is never added to local token history. Codex reset-credit expiry is shown only when reported; detail rows may be capped.
+- Skills and OTEL review panels can **Copy all issues** into an agent-ready brief with IDs, evidence, source scope, and verification limits. After skill edits, **Verify after changes** rescans and distinguishes detector-cleared, still-detected, and unverified findings. ContextDaddy does not make the edits; OTEL signals need a new comparable observation window.
+- Files & diagnostics configuration findings have the same copy-all and rescan handoff without copying configuration values or modifying files. This file audit detects the two misplaced `otel.*` keys but cannot detect launch-time `session-flags.token_budget`; that warning must be traced to the launcher supplying the flag.
+- Cursor remains inventory-only for usage until a verified source exists.
+- Derived 24-hour Codex total-token, model, token-component, tool, MCP, API-error, compaction, and operation-time range estimates. Claude Code's documented OTLP token, model, session-start, and estimated-cost metrics are mapped separately when the local collector receives them. A reachable collector without verified Claude samples displays an explicit unavailable state and a route to separate Usage history rather than a grid of dashes; Claude tool/API event counts remain unavailable without a verified logs/trace adapter.
+- Recent Tempo session roots with trace IDs, start times, end-to-end durations, and span counts.
+- Native named-skill injection evidence with explicit/implicit mode and status; injection is not presented as proof of successful execution.
+- Explicitly unavailable bandwidth bytes and partial Cursor/Devin telemetry. Devin's indexed local history is not labelled live OTEL.
+- Read-only configuration health for ignored Codex settings and enabled MCP launch commands that cannot resolve, with deduplicated file/line evidence and remediation.
+- No automatic configuration writes, prompt bodies, responses, tool arguments, or results.
 
-- A native SwiftUI and AppKit explorer with live scan results, treemap and
-  other visual views, folder drill-down, sorting and an inspector.
-- Developer Insights for caches, builds, packages, node_modules, Git data and
-  recognized AI storage. Scan time, entries per second and sampled memory
-  make the cost of scanning visible.
-- Reviewed cleanup: stage candidates, inspect warnings, then confirm a move
-  to Trash. Scanning never deletes files, and the app never empties Trash.
-- Installed applications with icons, sizes, last-used metadata, categories
-  and reviewed removal of eligible apps.
-- AI Sessions for standard Claude and Codex transcript locations, independent
-  of a disk scan. Older conversations can be exported locally before cleanup.
-- **AI Context (Beta)**: expandable projects, shared Global Skills, source
-  previews and per-agent instruction estimates. These are partial estimates,
-  not measurements of an agent's live prompt.
-- Saved snapshots in History and signed updates through Sparkle.
-
-## Install
-
-The public DMG is Developer ID signed, notarized and stapled. It supports
-**Apple silicon Macs with macOS 14 or later**. Download it, drag storagedaddy
-into Applications and open it. Choose a disk or a folder to scan. Full Disk
-Access is optional and helps with protected locations.
-
-Automatic update checks are enabled by default. Installing an update requires
-confirmation. The app menu also provides **Check for Updates…**.
-
-## Build from source
-
-Requirements: macOS 14+, Xcode with Swift 6, Python 3, Git, and Rust 1.82+
-with Cargo for the Memory Pack helper. Dependencies are pinned with
-`Package.resolved` and `Vendor/MemoryPack/Cargo.lock`.
+## Run locally
 
 ```sh
-git clone https://github.com/sarthakagrawal927/storagedaddy.git
-cd storagedaddy
-swift build -c release
-
-# Build the included, compatible archive helper.
-python3 scripts/prepare-memory-pack.py --source Vendor/MemoryPack --build
-python3 scripts/package-app.py
-open artifacts/StorageDaddy.app
+swift run ContextDaddy
 ```
 
-The package script creates an ad-hoc signed development app. It increments a
-local build number; it does not reproduce the signing or build number of the
-public DMG. Signing keys and notarization credentials are not included. The
-checked-in Sparkle key is public and cannot sign updates. For a fork, configure
-your own update feed and signing key before distribution.
+The app requires macOS 14 or newer. Its Codex adapter reads the loopback-only local telemetry stack and renders Prometheus metrics and Tempo sessions inside ContextDaddy. A separate Claude adapter reads Claude Code metrics from the same local Prometheus path only if Claude exports to that collector; ContextDaddy does not enable or reroute Claude telemetry. The rest of the product still works when either source is absent or partial.
 
-```sh
-swift test
-(cd scripts && python3 -m unittest test_sparkle_support)
-cargo test --locked --manifest-path Vendor/MemoryPack/Cargo.toml
-```
+ContextDaddy runs [ccusage](https://github.com/ccusage/ccusage) 20.0.20 directly in offline mode for local history. The packaged app carries its own pinned helper and [MIT acknowledgement](CONTEXTDADDY_NOTICES.md); no CodeVetter installation or CLI is needed at runtime. A **Refresh history** action rescans local logs. **Check allowance** separately calls Codex app-server and Claude Code `/usage` through their installed CLIs; opt-in automatic checking uses the same adapters with a 15-minute minimum interval. These readings are not ccusage totals.
 
-## Landing page
+The general usage dashboard lives in ContextDaddy's Focus Desk. Devin's distinct indexed history comes from a bounded, read-only scan of the Devin CLI SQLite session index, separate from ccusage. It deduplicates repeated assistant message IDs and reports daily token classes and models for each range. Select **Devin index** in Historical usage to chart this source independently. Devin cost remains explicitly unavailable until a provider-verified rate source exists; a missing or unreadable index is never presented as zero usage.
 
-The static landing and Cloudflare Worker are under `site/`.
+To create the local `.app` after a build, run `python3 scripts/package-contextdaddy.py --ccusage /path/to/ccusage`. The packager verifies the exact 20.0.20 helper, copies it into ContextDaddy's bundle, and selects the newest available release or debug executable so an older build product cannot silently replace the interface. A matching helper already installed in a standard command location is detected automatically; CodeVetter is not searched.
 
-```sh
-cd site
-npm ci
-npm run check
-```
+For a public download, use `scripts/release-contextdaddy.py` only after building the release executable. It requires an installed Developer ID Application identity, an existing notarization Keychain profile, and an explicit ccusage 20.0.20 path. It creates a new, isolated signed and notarized DMG with a checksum and receipt; it does not publish anything. Qualify the installed app and GitHub release assets before making a public-release claim. The inherited `scripts/release-dmg.py` packages StorageDaddy and must not be used for ContextDaddy.
 
-To preview the static page without Cloudflare, run
-`python3 -m http.server 8792 --directory site/public/storagedaddy` from the
-repository root. Public DMGs are hosted on the website and excluded from Git.
-The deployment script requires the exact qualified DMG from `site/release.json`
-to be present locally. Publishing updates additionally requires the owner's
-Developer ID, notarization profile and Sparkle signing key.
+## Architecture
 
-## Privacy and limits
+- `Sources/ContextCore`: bounded discovery, policy normalization, redundancy analysis, evidence models, separate read-only Codex/Claude telemetry mapping, direct ccusage history, and opt-in provider allowance adapters.
+- `Sources/ContextDaddy`: native SwiftUI shell, Usage, skill access, project context, direct OpenTelemetry view, and secondary files/diagnostics browser.
+- `Tests/ContextCoreTests`: policy, discovery, grouping, sorting, and safe document-reading behavior.
+- `Tests/ContextDaddyTests`: application-model behavior.
 
-File processing stays on your Mac. There are no file uploads or AI calls.
-Sparkle uses HTTPS to check for and download updates. Website request counts
-are separate from app activity.
+StorageDaddy remains the Git-history/upstream starting point, but its old targets are intentionally not compiled by the ContextDaddy package. No StorageDaddy working tree was modified.
 
-Scans can be partial when macOS denies access. On-disk sizes reflect allocated
-storage; shared APFS blocks, hard links and snapshots mean totals are not a
-promise of space reclaimed. Trash continues to occupy storage until you empty
-it. Application associations and developer classifications are best-effort.
+## Privacy boundary
 
-AI session counts describe transcript files, including nested subagent files,
-not necessarily distinct conversations. Custom agent home folders are not
-covered by the standard-location inventory. AI Context has bounded discovery
-and cannot prove which instructions, rules or tools a running agent loaded.
+ContextDaddy inspects well-known agent roots and opens at most 64 KiB of each `SKILL.md` to parse frontmatter and compute a one-way SHA-256 fingerprint; it does not retain or display the skill body during discovery. Other eligible document bodies open only after an explicit Preview action, through a guarded regular-file reader capped at 256 KiB, and MCP configuration bodies are never previewed. Configuration health reads only bounded structural fields and ignores credential, header, environment, and MCP argument values. It skips secret-shaped and generated directories during discovery. Telemetry is fetched from a loopback-only local stack whose collector removes prompt, response, command, argument, result, account, and host fields before persistence. Offline ccusage history remains in memory for the current app session. ContextDaddy performs no config writes and makes no claim about exact internet bytes without a dedicated sensor.
 
-Conversation archives retain supported prompts, replies and metadata while
-omitting bulky tool traffic, attachments and other records. They are lossy
-reading exports, not resumable backups. Exporting alone frees no space.
-Original removal is a separate verified and confirmed cleanup action. Review
-exports before sharing: credential masking is best-effort.
+## Status
 
-## License and acknowledgments
-
-storagedaddy's original code and documentation are available under the
-[MIT license](LICENSE). Third-party libraries and provider artwork retain their
-own terms; see [Third-party notices](THIRD_PARTY_NOTICES.md). Acknowledgments
-are also available in the app menu.
-
-### Excluded folders
-
-Click **Settings** at the bottom of the sidebar, or open **storagedaddy → Settings…** (⌘,) and select **Excluded Folders**. Add folders to omit them and their contents from future disk scans. Preferences save on this Mac across launches. Remove a folder from this list to include it again, then rescan for updated totals.
-
-Exclusions also block storage cleanup of those folders, their descendants, and any parent that would contain them. Changing exclusions clears the cleanup queue and marks existing results for a rescan. Settings cannot change during an active scan or cleanup check. Independent Applications and AI tools retain their own inventory scope.
-
-Cleanup uses one review list with a regeneration label on each item. Recognized caches and dependencies are usually regenerable; ambiguous build folders and other data are marked “Regeneration unconfirmed.” These labels are recovery guidance, not proof that an item is unused or disposable.
+This is an unreleased local development build. See [GitHub issue #1](https://github.com/sarthakagrawal927/contextdaddy/issues/1) for the acceptance checklist.

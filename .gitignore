@@ -18,8 +18,6 @@ site/public/storagedaddy/releases/*.dmg
 .fleet/
 Experiments/
 PROJECT_STATUS.md
-PRODUCT.md
-DESIGN.md
 OPEN_SOURCE_EVALUATION.md
 *.dmg
 *.zip

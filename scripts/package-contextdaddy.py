@@ -1,0 +1,96 @@
+"""Package an already-built ContextDaddy executable as a local development app."""
+import argparse
+from pathlib import Path
+import plistlib
+import shutil
+import subprocess
+
+root = Path(__file__).resolve().parents[1]
+parser = argparse.ArgumentParser()
+parser.add_argument("binary", nargs="?", type=Path)
+parser.add_argument("--ccusage", type=Path, help="Pinned ccusage 20.0.20 executable to bundle")
+parser.add_argument("--output", type=Path, default=root / "artifacts/ContextDaddy.app")
+parser.add_argument("--unsigned", action="store_true", help="Leave signing to the distribution packager")
+args = parser.parse_args()
+
+if args.binary is None:
+    candidates = [
+        root / ".build/out/Products/Release/ContextDaddy",
+        root / ".build/release/ContextDaddy",
+        root / ".build/out/Products/Debug/ContextDaddy",
+        root / ".build/debug/ContextDaddy",
+    ]
+    existing = [candidate for candidate in candidates if candidate.is_file()]
+    if not existing:
+        raise SystemExit("Build ContextDaddy first; no release or debug executable was found.")
+    args.binary = max(existing, key=lambda candidate: candidate.stat().st_mtime)
+
+if not args.binary.is_file():
+    raise SystemExit(f"Build ContextDaddy first: {args.binary}")
+
+# Validate helper and attribution before mutating an existing app bundle.
+ccusage_candidates = ([args.ccusage] if args.ccusage else []) + [
+    root / "artifacts/ContextDaddy.app/Contents/Helpers/ccusage",
+    Path.home() / ".local/bin/ccusage",
+    Path("/opt/homebrew/bin/ccusage"),
+    Path("/usr/local/bin/ccusage"),
+]
+ccusage = next((candidate for candidate in ccusage_candidates if candidate and candidate.is_file()), None)
+if ccusage is None:
+    raise SystemExit("A ccusage 20.0.20 executable is required; pass --ccusage <path>.")
+version = subprocess.run([str(ccusage), "--version"], capture_output=True, text=True, check=True, timeout=10)
+if version.stdout.strip() != "ccusage 20.0.20":
+    raise SystemExit(f"Expected ccusage 20.0.20, got: {version.stdout.strip()!r}")
+if not (root / "CONTEXTDADDY_NOTICES.md").is_file():
+    raise SystemExit("Missing ccusage attribution and MIT notice.")
+
+bundle = args.output
+contents = bundle / "Contents"
+executable = contents / "MacOS/ContextDaddy"
+contents.joinpath("MacOS").mkdir(parents=True, exist_ok=True)
+resources = contents / "Resources"
+resources.mkdir(parents=True, exist_ok=True)
+pending = executable.with_suffix(".pending")
+shutil.copy2(args.binary, pending)
+pending.chmod(0o755)
+pending.replace(executable)
+
+for asset_name in ["AIContext.png", "PageDoodles.png", "ContextDaddy.icns"]:
+    source = root / "Assets" / asset_name
+    if not source.is_file():
+        raise SystemExit(f"Missing required artwork: {source}")
+    shutil.copy2(source, resources / asset_name)
+
+# The packaged app owns its pinned helper and never launches another product.
+helpers = contents / "Helpers"
+helpers.mkdir(parents=True, exist_ok=True)
+if ccusage.resolve() != (helpers / "ccusage").resolve():
+    shutil.copy2(ccusage, helpers / "ccusage")
+(helpers / "ccusage").chmod(0o755)
+shutil.copy2(root / "CONTEXTDADDY_NOTICES.md", resources / "CONTEXTDADDY_NOTICES.md")
+
+with contents.joinpath("Info.plist").open("wb") as handle:
+    plistlib.dump({
+        "CFBundleExecutable": "ContextDaddy",
+        "CFBundleIdentifier": "com.significanthobbies.contextdaddy",
+        "CFBundleName": "ContextDaddy",
+        "CFBundleDisplayName": "ContextDaddy",
+        "CFBundleIconFile": "ContextDaddy.icns",
+        "CFBundlePackageType": "APPL",
+        "CFBundleShortVersionString": "0.1.0",
+        "CFBundleVersion": "1",
+        "LSApplicationCategoryType": "public.app-category.developer-tools",
+        "LSMinimumSystemVersion": "14.0",
+        "NSHighResolutionCapable": True,
+        "NSPrincipalClass": "NSApplication",
+    }, handle)
+
+if not args.unsigned:
+    subprocess.run(["/usr/bin/codesign", "--force", "--sign", "-", str(bundle)], check=True)
+    registration = subprocess.run([
+        "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister",
+        "-f", str(bundle),
+    ], check=False)
+    if registration.returncode != 0:
+        print("Warning: the app was packaged and signed, but LaunchServices registration did not refresh.")
+print(f"Packaged {args.binary} -> {bundle}")
