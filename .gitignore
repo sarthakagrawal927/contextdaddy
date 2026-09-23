@@ -4,21 +4,11 @@ artifacts/
 .DS_Store
 __pycache__/
 
-# Isolated Rust scanner experiment build products
-Experiments/**/target/
-
 dist/
 
-site/node_modules/
-site/.wrangler/
-site/artifacts/
-site/public/storagedaddy/releases/*.dmg
-
-# Private local receipts and unpublished experiments
+# Private local receipts
 .fleet/
-Experiments/
 PROJECT_STATUS.md
-OPEN_SOURCE_EVALUATION.md
 *.dmg
 *.zip
 .env
@@ -26,14 +16,8 @@ OPEN_SOURCE_EVALUATION.md
 .dev.vars
 .dev.vars.*
 
-Vendor/MemoryPack/target/
-
 # Retain local artwork experiments without publishing abandoned variants.
 Assets/*-master*
 Assets/*-before-*
 Assets/*-preview*
 Assets/*.iconset/
-Assets/StorageDaddy-doodle.*
-Assets/StorageDaddy-mascot*
-site/MEASUREMENT.md
-site/public/storagedaddy/assets/cleanup-review.png

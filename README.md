@@ -52,7 +52,7 @@ The general usage dashboard lives in ContextDaddy's Focus Desk. Devin's distinct
 
 To create the local `.app` after a build, run `python3 scripts/package-contextdaddy.py --ccusage /path/to/ccusage`. The packager verifies the exact 20.0.20 helper, copies it into ContextDaddy's bundle, and selects the newest available release or debug executable so an older build product cannot silently replace the interface. A matching helper already installed in a standard command location is detected automatically; CodeVetter is not searched.
 
-For a public download, use `scripts/release-contextdaddy.py` only after building the release executable. It requires an installed Developer ID Application identity, an existing notarization Keychain profile, and an explicit ccusage 20.0.20 path. It creates a new, isolated signed and notarized DMG with a checksum and receipt; it does not publish anything. Qualify the installed app and GitHub release assets before making a public-release claim. The inherited `scripts/release-dmg.py` packages StorageDaddy and must not be used for ContextDaddy.
+For a public download, use `scripts/release-contextdaddy.py` only after building the release executable. It requires an installed Developer ID Application identity, an existing notarization Keychain profile, and an explicit ccusage 20.0.20 path. It creates a new, isolated signed and notarized DMG with a checksum and receipt; it does not publish anything. Qualify the installed app and GitHub release assets before making a public-release claim. StorageDaddy's separate release tooling does not apply to ContextDaddy.
 
 ## Architecture
 
@@ -61,7 +61,7 @@ For a public download, use `scripts/release-contextdaddy.py` only after building
 - `Tests/ContextCoreTests`: policy, discovery, grouping, sorting, and safe document-reading behavior.
 - `Tests/ContextDaddyTests`: application-model behavior.
 
-StorageDaddy remains the Git-history/upstream starting point, but its old targets are intentionally not compiled by the ContextDaddy package. No StorageDaddy working tree was modified.
+ContextDaddy was extracted from StorageDaddy's MIT-licensed context work, with the product attribution retained. Its public source snapshot excludes inherited storage, cleanup, website, and release code. No StorageDaddy working tree was modified.
 
 ## Privacy boundary
 
