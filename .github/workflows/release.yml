@@ -245,7 +245,7 @@ jobs:
           SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
         run: |
           dmg="$(find "$RUNNER_TEMP/release" -maxdepth 1 -name '*.dmg' -print -quit)"
-          gh release create "$RELEASE_TAG" "$dmg" "$RUNNER_TEMP/release/SHA256SUMS" "$RUNNER_TEMP/release/release-metadata-receipt.json" "$RUNNER_TEMP/live-publication-receipt.json" --verify-tag --title "$RELEASE_TAG" --notes "Developer ID signed and Apple notarized. Source: $SOURCE_SHA. The live download was verified against the qualified artifact."
+          gh release create "$RELEASE_TAG" "$dmg" "$RUNNER_TEMP/release/SHA256SUMS" "$RUNNER_TEMP/release/release-metadata-receipt.json" "$RUNNER_TEMP/live-publication-receipt.json" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$RELEASE_TAG" --notes "Developer ID signed and Apple notarized. Source: $SOURCE_SHA. The live download was verified against the qualified artifact."
       - name: Record published site metadata on main
         env:
           GH_TOKEN: ${{ github.token }}
