@@ -1,0 +1,13 @@
+{
+  "name": "contextdaddy-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "check": "node --test worker.test.mjs && wrangler deploy --dry-run",
+    "deploy": "node check-release.mjs && npm run check && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.125.0"
+  }
+}
