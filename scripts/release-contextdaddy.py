@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import plistlib
+import re
 import shutil
 import subprocess
 import sys
@@ -29,10 +30,24 @@ def sha256(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--identity", required=True, help="Installed Developer ID Application identity")
-    parser.add_argument("--notary-profile", required=True, help="Existing Keychain profile name; never pass credentials")
+    parser.add_argument("--notary-profile", help="Existing Keychain profile name; never pass credentials")
+    parser.add_argument("--notary-api-key", type=Path, help="Path to protected App Store Connect API key")
+    parser.add_argument("--notary-key-id", help="App Store Connect API key identifier")
+    parser.add_argument("--notary-issuer-id", help="App Store Connect issuer identifier")
     parser.add_argument("--ccusage", required=True, type=Path, help="Pinned ccusage 20.0.20 executable")
     parser.add_argument("--output", required=True, type=Path, help="New output directory; never overwritten")
+    parser.add_argument("--version", required=True, help="Release version")
+    parser.add_argument("--build", type=int, required=True, help="Release build number")
+    parser.add_argument("--source-sha", required=True, help="Exact tagged source commit")
     args = parser.parse_args()
+    if not re.fullmatch(r"[0-9a-f]{40}", args.source_sha):
+        parser.error("--source-sha must be a full commit hash")
+    source_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    if source_sha != args.source_sha:
+        parser.error("--source-sha does not match the checked-out source")
+    api_auth = [args.notary_api_key, args.notary_key_id, args.notary_issuer_id]
+    if (args.notary_profile and any(api_auth)) or (any(api_auth) and not all(api_auth)) or not (args.notary_profile or all(api_auth)):
+        parser.error("Pass a Keychain profile or the complete API key, key ID, and issuer ID")
 
     binary = ROOT / ".build/release/ContextDaddy"
     if not binary.is_file():
@@ -52,7 +67,8 @@ def main():
     stage.mkdir()
     app = stage / "ContextDaddy.app"
     run(sys.executable, ROOT / "scripts/package-contextdaddy.py", binary,
-        "--ccusage", args.ccusage.resolve(), "--output", app, "--unsigned")
+        "--ccusage", args.ccusage.resolve(), "--output", app, "--unsigned",
+        "--version", args.version, "--build", args.build)
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
     helper = app / "Contents/Helpers/ccusage"
     run("codesign", "--force", "--sign", args.identity, "--timestamp", "--options", "runtime", helper)
@@ -62,7 +78,7 @@ def main():
     (stage / "Applications").symlink_to("/Applications")
     shutil.copy2(ROOT / "CONTEXTDADDY_DISTRIBUTION.md", stage / "Start Here.txt")
     version = info["CFBundleShortVersionString"]
-    dmg = output / f"ContextDaddy-{version}-arm64.dmg"
+    dmg = output / f"ContextDaddy-{version}-{info['CFBundleVersion']}-arm64.dmg"
     run("hdiutil", "create", "-volname", "ContextDaddy", "-srcfolder", stage,
         "-format", "UDZO", dmg)
     run("codesign", "--force", "--sign", args.identity, "--timestamp", dmg)
@@ -79,12 +95,15 @@ def main():
         "sourceBinarySha256": sha256(binary),
         "helperSha256": sha256(args.ccusage),
         "dmgSha256": sha256(dmg),
+        "sourceSha": args.source_sha,
     }
     receipt_path = output / "release-receipt.json"
     receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
 
-    result = run("xcrun", "notarytool", "submit", dmg,
-                 "--keychain-profile", args.notary_profile, "--wait",
+    auth = (["--keychain-profile", args.notary_profile] if args.notary_profile else
+            ["--key", args.notary_api_key, "--key-id", args.notary_key_id,
+             "--issuer", args.notary_issuer_id])
+    result = run("xcrun", "notarytool", "submit", dmg, *auth, "--wait",
                  "--output-format", "json", capture_output=True, text=True)
     notarization = json.loads(result.stdout)
     (output / "notarization.json").write_text(json.dumps(notarization, indent=2) + "\n")
