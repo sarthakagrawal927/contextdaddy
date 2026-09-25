@@ -20,3 +20,9 @@ jobs:
       # the release Mac; portable behavior tests run on the clean runner.
       - run: swift test --skip DesignSnapshotTests
       - run: swift build -c release
+
+  shared_candidate:
+    uses: sass-maker/saas-maker/.github/workflows/daddy-macos-candidate.yml@7c857b49e0ea5547abf3aad6d9a3ac4a22fd6834
+    with:
+      app: contextdaddy
+      tooling-ref: 7c857b49e0ea5547abf3aad6d9a3ac4a22fd6834
