@@ -1,0 +1,83 @@
+name: Protected release preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Exact v<major>.<minor>.<patch>-<build> tag already reachable from main
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    if: github.ref == 'refs/heads/main'
+    environment: production-release
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+          path: app
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out pinned public validation tooling
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: sass-maker/saas-maker
+          ref: b5ea3979dd59c7254bf130c06fc12c59718e6ede
+          path: .daddy-tooling
+          persist-credentials: false
+      - name: Verify release tag and source commit
+        id: source
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          CALLER_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 .daddy-tooling/tooling/daddy-macos/release_preflight.py \
+            --app contextdaddy \
+            --repository "$CALLER_REPOSITORY" \
+            --root app \
+            --tag "$RELEASE_TAG" \
+            --receipt release-source-receipt.json
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          source_sha = json.loads(Path('release-source-receipt.json').read_text())['sourceSha']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'source_sha={source_sha}\n')
+          PY
+      - name: Check out exact release source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ steps.source.outputs.source_sha }}
+          path: app
+          persist-credentials: false
+      - name: Run candidate checks on release source
+        env:
+          CALLER_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 .daddy-tooling/tooling/daddy-macos/candidate.py \
+            --app contextdaddy \
+            --repository "$CALLER_REPOSITORY" \
+            --root app \
+            --receipt release-candidate-receipt.json
+      - name: Record preflight receipt
+        run: |
+          echo '### Release preflight only' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The exact tagged source passed candidate checks. No app was signed, notarized, installed, or published.' >> "$GITHUB_STEP_SUMMARY"
+          cat release-source-receipt.json release-candidate-receipt.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Require protected signing and notarization inputs
+        env:
+          CERT_READY: ${{ secrets.DEVELOPER_ID_CERT_P12_BASE64 != '' && secrets.DEVELOPER_ID_CERT_PASSWORD != '' && secrets.DEVELOPER_ID_IDENTITY != '' }}
+          NOTARY_READY: ${{ secrets.APPLE_NOTARY_API_KEY_P8_BASE64 != '' && secrets.APPLE_NOTARY_KEY_ID != '' && secrets.APPLE_NOTARY_ISSUER_ID != '' }}
+        run: |
+          if [[ "$CERT_READY" != true || "$NOTARY_READY" != true ]]; then
+            echo 'Protected Developer ID and notary inputs are not configured' >&2
+            exit 1
+          fi
