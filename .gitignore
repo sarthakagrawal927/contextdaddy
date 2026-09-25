@@ -21,3 +21,6 @@ Assets/*-master*
 Assets/*-before-*
 Assets/*-preview*
 Assets/*.iconset/
+
+node_modules/
+.impeccable/

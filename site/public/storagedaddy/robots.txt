@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://storagedaddy.significanthobbies.com/sitemap.xml

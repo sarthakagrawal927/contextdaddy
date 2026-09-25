@@ -1,5 +1,5 @@
 {
-  "name": "storagedaddy",
+  "name": "contextdaddy-site",
   "main": "worker.mjs",
   "compatibility_date": "2026-08-27",
   "workers_dev": true,
@@ -11,22 +11,8 @@
   },
   "routes": [
     {
-      "pattern": "significanthobbies.com/storagedaddy",
-      "zone_name": "significanthobbies.com"
-    },
-    {
-      "pattern": "significanthobbies.com/storagedaddy/*",
-      "zone_name": "significanthobbies.com"
-    },
-    {
-      "pattern": "storagedaddy.significanthobbies.com",
+      "pattern": "context.daddyrad.com",
       "custom_domain": true
-    }
-  ],
-  "analytics_engine_datasets": [
-    {
-      "binding": "DOWNLOADS",
-      "dataset": "storagedaddy_launch"
     }
   ],
   "observability": {
