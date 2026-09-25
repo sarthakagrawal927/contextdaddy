@@ -1,18 +1,22 @@
-name: Protected release candidate
+name: Protected manual release
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Exact v<major>.<minor>.<patch>-<build> tag already reachable from main
+        description: Exact v<major>.<minor>.<patch>-<build> tag on the current main commit
         required: true
         type: string
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: manual-production-release
+  cancel-in-progress: false
 
 jobs:
-  preflight:
+  release:
     if: github.ref == 'refs/heads/main'
     environment: production-release
     runs-on: macos-26
@@ -29,7 +33,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: sass-maker/saas-maker
-          ref: 110aca5abbda9f57443cf1e6c737e4610b752805
+          ref: 7a3b78acbcd523bb968ff19e1b3ae9427d022b91
           path: .daddy-tooling
           persist-credentials: false
       - name: Verify release tag and source commit
@@ -76,9 +80,10 @@ jobs:
         env:
           CERT_READY: ${{ secrets.DEVELOPER_ID_CERT_P12_BASE64 != '' && secrets.DEVELOPER_ID_CERT_PASSWORD != '' && secrets.DEVELOPER_ID_IDENTITY != '' }}
           NOTARY_READY: ${{ secrets.APPLE_NOTARY_API_KEY_P8_BASE64 != '' && secrets.APPLE_NOTARY_KEY_ID != '' && secrets.APPLE_NOTARY_ISSUER_ID != '' }}
+          SITE_READY: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
         run: |
-          if [[ "$CERT_READY" != true || "$NOTARY_READY" != true ]]; then
-            echo 'Protected Developer ID and notary inputs are not configured' >&2
+          if [[ "$CERT_READY" != true || "$NOTARY_READY" != true || "$SITE_READY" != true ]]; then
+            echo 'Protected signing, notary, or Cloudflare inputs are not configured' >&2
             exit 1
           fi
       - name: Resolve exact release version
@@ -177,7 +182,7 @@ jobs:
             --dmg "$RUNNER_TEMP/release/ContextDaddy-$VERSION-$BUILD-arm64.dmg" \
             --sums "$RUNNER_TEMP/release/SHA256SUMS" \
             --notary-json "$RUNNER_TEMP/release/notarization.json" \
-            --previous-build 1 --source-sha "$SOURCE_SHA" \
+            --previous-build "$(python3 -c 'import json; print(json.load(open("app/site/release.json"))["build"])')" --source-sha "$SOURCE_SHA" \
             --receipt "$RUNNER_TEMP/release/release-metadata-receipt.json"
       - name: Retain qualified release candidate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -191,3 +196,66 @@ jobs:
             ${{ runner.temp }}/release/release-metadata-receipt.json
           if-no-files-found: error
           retention-days: 7
+
+      - name: Check out site source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+          path: site-source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Stage qualified site assets
+        env:
+          CALLER_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import subprocess
+          main_at_check = json.load(open("release-source-receipt.json"))["mainShaAtCheck"]
+          site_source = subprocess.check_output(["git", "-C", "site-source", "rev-parse", "HEAD"], text=True).strip()
+          if site_source != main_at_check:
+              raise SystemExit("main changed after release preflight; start a fresh manual release")
+          PY
+          dmg="$(find "$RUNNER_TEMP/release" -maxdepth 1 -name '*.dmg' -print -quit)"
+          python3 .daddy-tooling/tooling/daddy-macos/publish_site.py --app contextdaddy --repository "$CALLER_REPOSITORY" --site site-source/site --dmg "$dmg" --receipt "$RUNNER_TEMP/release/release-metadata-receipt.json" --output "$RUNNER_TEMP/publication.json"
+      - name: Select Node.js for the site
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: site-source/site/package-lock.json
+      - name: Install site dependencies
+        working-directory: site-source/site
+        run: npm ci
+      - name: Deploy qualified site
+        working-directory: site-source/site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npm run deploy
+      - name: Verify live download and update feed
+        run: |
+          dmg="$(find "$RUNNER_TEMP/release" -maxdepth 1 -name '*.dmg' -print -quit)"
+          python3 .daddy-tooling/tooling/daddy-macos/verify_live.py --report "$RUNNER_TEMP/publication.json" --dmg "$dmg" --output "$RUNNER_TEMP/live-publication-receipt.json"
+          cat "$RUNNER_TEMP/live-publication-receipt.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+        run: |
+          dmg="$(find "$RUNNER_TEMP/release" -maxdepth 1 -name '*.dmg' -print -quit)"
+          gh release create "$RELEASE_TAG" "$dmg" "$RUNNER_TEMP/release/SHA256SUMS" "$RUNNER_TEMP/release/release-metadata-receipt.json" "$RUNNER_TEMP/live-publication-receipt.json" --verify-tag --title "$RELEASE_TAG" --notes "Developer ID signed and Apple notarized. Source: $SOURCE_SHA. The live download was verified against the qualified artifact."
+      - name: Record published site metadata on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          git -C site-source config user.name 'github-actions[bot]'
+          git -C site-source config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C site-source add -u site
+          if ! git -C site-source diff --cached --quiet; then
+            git -C site-source commit -m "release: record $RELEASE_TAG site publication"
+            gh auth setup-git
+            git -C site-source push origin HEAD:main
+          fi

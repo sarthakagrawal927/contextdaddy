@@ -59,11 +59,15 @@ shutil.copy2(args.binary, pending)
 pending.chmod(0o755)
 pending.replace(executable)
 
-for asset_name in ["AIContext.png", "PageDoodles.png", "ContextDaddy.icns"]:
+for asset_name in ["AIContext.png", "PageDoodles.png"]:
     source = root / "Assets" / asset_name
     if not source.is_file():
         raise SystemExit(f"Missing required artwork: {source}")
     shutil.copy2(source, resources / asset_name)
+icon = root / "Support/ContextDaddy.icns"
+if not icon.is_file():
+    raise SystemExit(f"Missing required icon: {icon}")
+shutil.copy2(icon, resources / icon.name)
 
 # The packaged app owns its pinned helper and never launches another product.
 helpers = contents / "Helpers"
