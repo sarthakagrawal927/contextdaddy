@@ -11,7 +11,11 @@ parser.add_argument("binary", nargs="?", type=Path)
 parser.add_argument("--ccusage", type=Path, help="Pinned ccusage 20.0.20 executable to bundle")
 parser.add_argument("--output", type=Path, default=root / "artifacts/ContextDaddy.app")
 parser.add_argument("--unsigned", action="store_true", help="Leave signing to the distribution packager")
+parser.add_argument("--version", default="0.1.0", help="Package version")
+parser.add_argument("--build", type=int, default=1, help="Package build number")
 args = parser.parse_args()
+if not all(part.isdigit() for part in args.version.split(".")) or args.build < 1:
+    parser.error("Version must be numeric and build must be positive")
 
 if args.binary is None:
     candidates = [
@@ -77,8 +81,8 @@ with contents.joinpath("Info.plist").open("wb") as handle:
         "CFBundleDisplayName": "ContextDaddy",
         "CFBundleIconFile": "ContextDaddy.icns",
         "CFBundlePackageType": "APPL",
-        "CFBundleShortVersionString": "0.1.0",
-        "CFBundleVersion": "1",
+        "CFBundleShortVersionString": args.version,
+        "CFBundleVersion": str(args.build),
         "LSApplicationCategoryType": "public.app-category.developer-tools",
         "LSMinimumSystemVersion": "14.0",
         "NSHighResolutionCapable": True,
