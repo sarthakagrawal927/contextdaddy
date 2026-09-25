@@ -69,4 +69,4 @@ ContextDaddy inspects well-known agent roots and opens at most 64 KiB of each `S
 
 ## Status
 
-This is an unreleased local development build. See [GitHub issue #1](https://github.com/sarthakagrawal927/contextdaddy/issues/1) for the acceptance checklist.
+ContextDaddy 0.1.0 is a public early-access beta: a signed, notarized and stapled Apple-silicon build for macOS 14 or later, distributed from [context.daddyrad.com](https://context.daddyrad.com/download). There is no automatic updater yet; new builds are manual downloads.
