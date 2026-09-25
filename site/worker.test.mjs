@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import release from './release.json' with { type: 'json' };
 import worker from './worker.mjs';
 
 const env = {
@@ -13,7 +14,7 @@ test('serves /download on context.daddyrad.com', async () => {
     const response = await worker.fetch(new Request(`https://context.daddyrad.com/download`, { method }), env);
     assert.equal(response.status, 200, method);
     assert.equal(response.headers.get('Content-Type'), 'application/x-apple-diskimage');
-    assert.match(response.headers.get('Content-Disposition') ?? '', /ContextDaddy-0\.1\.0-2-arm64\.dmg/);
+    assert.equal(response.headers.get('Content-Disposition'), `attachment; filename="${release.filename}"`);
     assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
   }
 });
