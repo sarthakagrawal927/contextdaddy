@@ -51,7 +51,8 @@ enum SkillFilter: String, CaseIterable, Identifiable {
 }
 
 enum SkillsMode: String, CaseIterable, Identifiable {
-    case ledger = "How skills run"
+    case library = "Library"
+    case ledger = "Agent policies"
     case redundancy = "Redundancy review"
     var id: String { rawValue }
 }
@@ -137,7 +138,7 @@ final class ContextDaddyModel {
     var isVerifyingConfigurationIssues = false
     var search = ""
     var filter: SkillFilter = .all
-    var skillsMode: SkillsMode = .ledger
+    var skillsMode: SkillsMode = .library
     var redundancyKindFilter: RedundancyKindFilter = .review
     var redundancyAgentFilter: RedundancyAgentFilter = .all
     var selectedRuntime: AgentRuntime = .codex
@@ -154,7 +155,8 @@ final class ContextDaddyModel {
     private let snapshotStore = TelemetrySnapshotStore()
 
     init(discover: @escaping @Sendable ([URL]) throws -> AIContextDiscoveryReport = { roots in
-        try AIContextDiscovery.discover(configuration: .init(additionalRoots: roots))
+        try AIContextDiscovery.discover(configuration: .init(additionalRoots: roots, additionalSkillRoots:
+            (UserDefaults.standard.stringArray(forKey: "contextDaddySkillRoots") ?? []).map { URL(fileURLWithPath: $0) }))
     }) {
         self.discover = discover
     }
@@ -267,6 +269,27 @@ final class ContextDaddyModel {
         defer { isVerifyingConfigurationIssues = false }
         await refresh()
         configurationIssueVerification = baseline.verify(against: configurationHealth)
+    }
+
+    func refreshSkillLibrary() async {
+        guard !isLoading else { return }
+        isLoading = true
+        lastError = nil
+        defer { isLoading = false }
+        let roots = extraRoots.map { URL(fileURLWithPath: $0, isDirectory: true) }
+        let discover = self.discover
+        do {
+            let loaded = try await Task.detached(priority: .userInitiated) {
+                let report = try discover(roots)
+                return (report, SkillPolicyResolver.resolve(report: report), AIContextProjectCatalog.projects(from: report))
+            }.value
+            discoveryReport = loaded.0
+            catalog = loaded.1
+            projects = loaded.2
+            discoveryStatus = "\(loaded.1.physicalSkillCount) physical skills · \(loaded.1.exposureCount) locations"
+        } catch {
+            lastError = error.localizedDescription
+        }
     }
 
     func refresh() async {

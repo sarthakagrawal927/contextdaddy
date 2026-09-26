@@ -34,7 +34,12 @@ The primary user is a developer running Codex, Claude, Cursor, Devin, or Grok on
 - OTEL sessions, tools, models, tokens, compactions, errors, and named skill injections remain distinct signals instead of being flattened into one activity score.
 - OTEL is directly reachable and reports a disconnected local source as unavailable, never as zero activity.
 - Overlapping operation durations are never added together as wall time.
-- Local and read-only is the default boundary.
+- Discovery is read-only. Skill changes require an explicit preview and apply action; edits, local imports/updates, sharing links, and archival retain recovery evidence.
+- Skills opens one searchable library across physical definitions, logical exposures, agents, and ownership. Favorites and tags are app-local organization.
+- Added skill directories extend bounded discovery without automatically granting an agent access. Recognized agent roots retain their scope and policy evidence.
+- Plugin and system definitions are managed by their owner. ContextDaddy does not rewrite their caches or execute imported scripts.
+- Whole-folder local updates preserve support files and executable permissions. Conflicting destinations, stale previews, symlinked sources, oversized folders, and protected configuration files are rejected.
+- History persists intent before mutation and marks incomplete operations; restoration refuses to overwrite subsequent content edits.
 - Unknown or unsupported data remains visible as unavailable.
 - Ignored agent settings and enabled MCP launchers that cannot resolve are surfaced once per root cause with file/line evidence and read-only remediation.
 

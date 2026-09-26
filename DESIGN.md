@@ -25,7 +25,9 @@ ContextDaddy should feel unmistakably related to StorageDaddy while solving a di
 
 Friendly artwork and hard provenance coexist. Every operational number and policy decision still carries measured, derived, estimated, partial, or unavailable evidence; expanded skill rows explain the rule and provide invocation syntax.
 
-The Skills page begins with an agent-scoped view of how skills run. Three clickable, exclusive invocation totals answer what is automatic, manual-only, or unavailable for discovery. A separate needs-review queue explicitly overlaps those statuses. The sharing strip shows whether skills are portable across all agents, several agents, or only one. Installed cache copies remain visible in rows without receiving an active-policy color.
+The owner selected **A — Skill Library** for skill management on 2026-09-26. Skills now opens a searchable library with an adjacent inspector at wide widths and a stacked layout at smaller widths. All agents and all owners are the defaults. Source paths, linked exposures, ownership, local tags, and favorites are attached to one physical definition. Overview, Content, and Access separate the key decisions. Locations explains coverage and accepts additional skill folders. Create/import, edits, local folder updates, link sharing, and archive actions have explicit previews; History offers guarded recovery. Sharing chooses an agent and global or project scope before showing the destination. Plugin/system controls remain with their owner. Remote update discovery is not claimed.
+
+The secondary Agent policies view begins with an agent-scoped view of how skills run. Three clickable, exclusive invocation totals answer what is automatic, manual-only, or unavailable for discovery. A separate needs-review queue explicitly overlaps those statuses. The sharing strip shows whether skills are portable across all agents, several agents, or only one. Installed cache copies remain visible in rows without receiving an active-policy color.
 
 The same destination has a Redundancy review mode rather than a sixth sidebar item. Its first scan is decision-oriented: exact-copy groups, same-name drift, likely purpose overlap, and duplicate file bytes. The default queue excludes cache-only groups, which remain available through a dedicated filter and summary count. Every row states confidence, evidence, affected agents, a keep candidate, and why no automatic deletion follows. Managed plugin caches are visibly different from owner-managed definitions, and an always-visible boundary explains that missing usage telemetry is not proof of non-use.
 
@@ -39,7 +41,7 @@ The Skills redundancy mode and Codex Telemetry view lead with a short read-only 
 
 Usage project grouping uses a separate session ledger with Codex thread-index working directories, Grok paths, and Claude's encoded project slugs. The chart buckets whole sessions by last activity and explicitly disclaims reconciliation with daily totals; it never fabricates daily project token allocation. Model-provider grouping uses a narrow model-name classifier and retains unknown aliases. Devin has the same provider control in its separate index, never in a summed cross-source total.
 
-Copy all issues produces a structured handoff for an external coding agent, including every skill finding rather than only the three preview cards. The app never changes files itself. After agent work, Verify after changes rescans skill definitions: an issue is detector-cleared only when its original locations remain covered and no pair of those definitions still forms a finding. Missing locations or scan failure stay unverified. OTEL issue briefs explicitly require a comparable new window; a rolling counter dropping is not presented as proof of a fix.
+Copy all issues produces a structured handoff for an external coding agent, including every skill finding rather than only the three preview cards. The library can make explicit, previewed changes to local skills; external-agent handoffs remain available for broader remediation. After agent work, Verify after changes rescans skill definitions: an issue is detector-cleared only when its original locations remain covered and no pair of those definitions still forms a finding. Missing locations or scan failure stay unverified. OTEL issue briefs explicitly require a comparable new window; a rolling counter dropping is not presented as proof of a fix.
 
 ## Primary risk
 
@@ -58,5 +60,5 @@ Dense operational information can become tiring or ambiguous. Progressive disclo
 - Each list destination has one vertical scroll surface. Headers, filters, results, and pagination remain reachable at the minimum window height rather than competing for a fixed-height inner list.
 - Toolbars, policy grids, file rows, and telemetry panels reflow at the minimum supported window width instead of shrinking labels into clipped fragments.
 - Restored windows are constrained to the current display's visible frame, including when moving between displays with different usable heights.
-- No control implies that ContextDaddy can change agent policy in v1.
+- Content editing changes declared skill instructions only. No generic toggle implies that ContextDaddy can change global runtime settings or plugin activation.
 - Empty, partial, and unavailable states are first-class visual states.

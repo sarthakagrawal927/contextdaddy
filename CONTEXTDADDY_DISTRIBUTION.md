@@ -1,4 +1,4 @@
-ContextDaddy 0.1.0
+ContextDaddy 0.2.0
 ==================
 
 Apple silicon Mac · macOS 14 Sonoma or later
@@ -6,11 +6,13 @@ Apple silicon Mac · macOS 14 Sonoma or later
 Install
 -------
 Drag ContextDaddy to Applications, eject this disk image, then open the app
-from Applications. ContextDaddy is a read-only local view of coding-agent
-skills, project context, usage history, and available OpenTelemetry signals.
+from Applications. ContextDaddy is a local workspace for coding-agent skills, project context,
+usage history, and available OpenTelemetry signals. Skill changes are explicit,
+previewed actions with recovery history.
 
-Start with Usage for local history and provider allowance. Skills explains
-which definitions each supported agent can discover and invoke. Projects shows
+Start with Usage for local history and provider allowance. Skills brings definitions from different directories into one library, explains
+agent access, and supports local create/import, editing, folder updates, link
+sharing, and recoverable archival. Plugin-managed skills remain with their owner. Projects shows
 discovered context files; it does not claim those files were loaded into a
 live prompt. OpenTelemetry shows only verified signals from a compatible
 local collector. Files & diagnostics holds raw inventory and configuration

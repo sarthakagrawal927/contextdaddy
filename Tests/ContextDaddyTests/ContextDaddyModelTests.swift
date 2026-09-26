@@ -12,8 +12,9 @@ struct ContextDaddyModelTests {
         #expect(AppSection.allCases == [.overview, .skills, .projects, .telemetry])
         #expect(AppSection.overview.label == "Usage")
         #expect(AppSection.telemetry.label == "OpenTelemetry")
-        #expect(SkillsMode.ledger.rawValue == "How skills run")
+        #expect(SkillsMode.ledger.rawValue == "Agent policies")
         #expect(!model.evidenceOpen)
+        #expect(model.skillsMode == .library)
 
         model.showEvidence(.diagnostics)
         #expect(model.evidenceOpen)
@@ -22,6 +23,17 @@ struct ContextDaddyModelTests {
         #expect(model.section == .telemetry)
         #expect(!model.evidenceOpen)
         #expect(model.sourcesMode == .diagnostics)
+    }
+
+    @Test func failedLibraryRefreshPreservesPreviousDiscovery() async {
+        let source = LockedDiscoveryResults([.success(report(elapsed: 0.25)), .failure(.expected)])
+        let model = ContextDaddyModel { _ in try source.next() }
+        await model.refreshSkillLibrary()
+        let previous = model.catalog
+        await model.refreshSkillLibrary()
+        #expect(model.catalog == previous)
+        #expect(model.lastError != nil)
+        #expect(!model.isLoading)
     }
 
     @Test func failedRefreshPreservesPreviousDiscovery() async {

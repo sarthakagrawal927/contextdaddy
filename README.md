@@ -5,7 +5,7 @@ ContextDaddy is a local-first macOS control plane for coding-agent context. It a
 1. Which skills can Codex, Claude, Cursor, Devin, and Grok discover, and how can each runtime invoke them?
 2. What are those agents consuming in context tokens, logical network events, and tool calls when trustworthy local telemetry exists?
 
-The app combines a focused usage desk with a skills-and-policy ledger. Every value is labelled as measured, derived, estimated, partial, or unavailable. Missing instrumentation stays missing; ContextDaddy does not manufacture precision.
+The app combines a focused usage desk with a unified skill library and agent-policy inspector. Every value is labelled as measured, derived, estimated, partial, or unavailable. Missing instrumentation stays missing; ContextDaddy does not manufacture precision.
 
 The primary navigation is **Usage**, **Skills**, **Projects**, and **OpenTelemetry**. **Files & diagnostics** is a secondary, always-visible route to raw source inventory and configuration checks. Skills explains how each agent can use a skill; Projects shows discovered files rather than claiming they entered a live prompt. OpenTelemetry is directly reachable and uses a separate fixed 24-hour window.
 
@@ -28,7 +28,7 @@ The primary navigation is **Usage**, **Skills**, **Projects**, and **OpenTelemet
 - Usage first scan shows side-by-side Codex/Claude allowance and Devin's separately labelled indexed local history before the long chart. The historical chart has separate ccusage and Devin sources, model/model-provider/project grouping where supported, range, day/week/month scale, generated/cache/cost metrics where available, selectable periods and exact breakdown. Model, project, and session drill-downs remain below. Cache reads, generated tokens, and estimated cost stay separate; unpriced models are flagged.
 - Project grouping is a separately labelled session ledger, joining ccusage session IDs to Codex's read-only thread-index `cwd`, Grok's project paths, and Claude's encoded project slugs. It queries only Codex rollout path and working directory metadata, never prompt bodies. Buckets use session last activity, not an invented daily allocation; totals may not reconcile to daily accounting. Missing session identity remains **Unattributed**. Model-provider labels are inferred from reported model names, not billing endpoints; unknown aliases remain unknown. Devin participates in provider grouping only within its separate indexed source.
 - Provider allowance for Codex and Claude is fetched on **Check both allowances**, or on opening Usage after the user enables the opt-in automatic switch (at most once per 15 minutes). It is never added to local token history. Codex reset-credit expiry is shown only when reported; detail rows may be capped.
-- Skills and OTEL review panels can **Copy all issues** into an agent-ready brief with IDs, evidence, source scope, and verification limits. After skill edits, **Verify after changes** rescans and distinguishes detector-cleared, still-detected, and unverified findings. ContextDaddy does not make the edits; OTEL signals need a new comparable observation window.
+- Skills and OTEL review panels can **Copy all issues** into an agent-ready brief with IDs, evidence, source scope, and verification limits. After skill edits, **Verify after changes** rescans and distinguishes detector-cleared, still-detected, and unverified findings. The library supports previewed local skill edits with recovery; OTEL signals need a new comparable observation window.
 - Files & diagnostics configuration findings have the same copy-all and rescan handoff without copying configuration values or modifying files. This file audit detects the two misplaced `otel.*` keys but cannot detect launch-time `session-flags.token_budget`; that warning must be traced to the launcher supplying the flag.
 - Cursor remains inventory-only for usage until a verified source exists.
 - Derived 24-hour Codex total-token, model, token-component, tool, MCP, API-error, compaction, and operation-time range estimates. Claude Code's documented OTLP token, model, session-start, and estimated-cost metrics are mapped separately when the local collector receives them. A reachable collector without verified Claude samples displays an explicit unavailable state and a route to separate Usage history rather than a grid of dashes; Claude tool/API event counts remain unavailable without a verified logs/trace adapter.
@@ -37,6 +37,19 @@ The primary navigation is **Usage**, **Skills**, **Projects**, and **OpenTelemet
 - Explicitly unavailable bandwidth bytes and partial Cursor/Devin telemetry. Devin's indexed local history is not labelled live OTEL.
 - Read-only configuration health for ignored Codex settings and enabled MCP launch commands that cannot resolve, with deduplicated file/line evidence and remediation.
 - No automatic configuration writes, prompt bodies, responses, tool arguments, or results.
+
+## Skill management
+
+Skills opens **Library**: search names, descriptions, paths, agents, and app-local tags; filter by agent, owner, or location; favorite frequently used definitions. A physical skill appears once, with every discovered link and policy attached to it. **Agent policies** and **Review duplicates** retain the existing evidence views.
+
+- **Add skill** creates a definition or imports one local skill folder, including its support files. Add search locations for skills outside the known agent roots.
+- **Overview** shows the physical source, ownership, and logical exposures. **Content** explicitly reads SKILL.md and supports editing local definitions. **Access** explains each agent's effective policy and invocation syntax.
+- **Share** chooses an agent and a global/project scope, then previews a directory link. Existing destinations are never overwritten. Discovery does not prove runtime activation.
+- **Update from folder** previews replacement content and a file-change manifest, retaining the previous folder. Remote repositories are not fetched or checked for updates.
+- **Archive** moves a local skill into recovery storage. Linked exposures stop resolving until restored. Removing an exposure moves only that directory link.
+- **History** stores change receipts and recoverable originals under `~/Library/Application Support/ContextDaddy/SkillHistory`. Restore rejects newer content edits and occupied original destinations. Incomplete operations remain visible for inspection.
+
+Plugin/system definitions are read-only in this workflow and identify their owning mechanism. Imports never execute scripts; protected configuration files and symlinks inside a skill folder are rejected. Management is bounded to 2,000 entries and 16 MiB per skill folder, with a 256 KiB document editing limit. This feature does not modify global agent configuration or claim automatic upstream update detection.
 
 ## Run locally
 

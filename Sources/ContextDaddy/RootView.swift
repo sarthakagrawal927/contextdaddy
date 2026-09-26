@@ -250,6 +250,9 @@ struct SkillsLedgerView: View {
 
     var body: some View {
         @Bindable var model = model
+        if model.skillsMode == .library {
+            SkillLibraryView()
+        } else {
         GeometryReader { proxy in
             let compact = proxy.size.height < 720 || proxy.size.width < 850
             ScrollView {
@@ -341,6 +344,7 @@ struct SkillsLedgerView: View {
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
     }
+    }
 
     private var skillsModePicker: some View {
         ContextModeToggle(
@@ -348,7 +352,7 @@ struct SkillsLedgerView: View {
             selection: Bindable(model).skillsMode,
             choices: SkillsMode.allCases.map { ContextChoice($0, $0.rawValue) }
         )
-        .frame(width: 300)
+        .frame(width: 420)
     }
 
     private var runtimePicker: some View {

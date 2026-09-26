@@ -22,12 +22,13 @@ public enum AIContextDiscovery {
         public var home: URL
         public var projectRoots: [URL]
         public var additionalRoots: [URL]
+        public var additionalSkillRoots: [URL]
         public var limits: Limits
         public init(home: URL = FileManager.default.homeDirectoryForCurrentUser,
-                    projectRoots: [URL]? = nil, additionalRoots: [URL] = [], limits: Limits = .init()) {
+                    projectRoots: [URL]? = nil, additionalRoots: [URL] = [], additionalSkillRoots: [URL] = [], limits: Limits = .init()) {
             self.home = home.standardizedFileURL
             self.projectRoots = projectRoots ?? ["Desktop", "Documents", "Developer", "Projects", "Code", "src"].map { home.appendingPathComponent($0, isDirectory: true) }
-            self.additionalRoots = additionalRoots; self.limits = limits
+            self.additionalRoots = additionalRoots; self.additionalSkillRoots = additionalSkillRoots; self.limits = limits
         }
     }
 
@@ -37,6 +38,7 @@ public enum AIContextDiscovery {
         try state.discoverGlobals()
         try state.discoverProjects()
         try state.discoverPlugins()
+        try state.discoverSelectedSkillRoots()
         let items = state.items.values.sorted { ($0.path, $0.id) < ($1.path, $1.id) }
         let rankings = rank(items: items, roots: state.rankingRoots, home: configuration.home)
         var coverage = AIContextCoverage(roots: state.coverageRoots, visitedEntries: state.visited,
@@ -101,6 +103,20 @@ private struct State {
         }
         notes.append("Codex project ranking uses nearest git root through the selected folder; its default per-project instruction cap is 32 KiB, so bytes are potential evidence rather than measured loaded bytes.")
         notes.append("Claude skills and Cursor rules are conditional. Plugin caches and MCP configuration are not counted as inherited instructions.")
+    }
+
+    mutating func discoverSelectedSkillRoots() throws {
+        for root in configuration.additionalSkillRoots {
+            coverageRoots.append(root.standardizedFileURL.path)
+            let path = root.standardizedFileURL.path + "/"
+            let known: [(String, AIContextProvider)] = [("/.agents/skills/", .agents), ("/.codex/skills/", .codex),
+                ("/.claude/skills/", .claude), ("/.cursor/skills/", .cursor), ("/.grok/skills/", .grok),
+                ("/.config/devin/skills/", .devin), ("/.config/cognition/skills/", .devin)]
+            let provider = known.first { path.contains($0.0) }?.1 ?? .project
+            let global = known.contains { path.hasPrefix(configuration.home.path + $0.0) }
+            try skills(root, provider: provider, source: "Added library · \(root.lastPathComponent)",
+                       origin: provider == .project ? .installedOnly : .conditional, scope: global ? .global : .project)
+        }
     }
 
     mutating func discoverPlugins() throws {
