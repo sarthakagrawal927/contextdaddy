@@ -36,6 +36,8 @@ The primary navigation is **Usage**, **Skills**, **Projects**, and **OpenTelemet
 - Native named-skill injection evidence with explicit/implicit mode and status; injection is not presented as proof of successful execution.
 - Explicitly unavailable bandwidth bytes and partial Cursor/Devin telemetry. Devin's indexed local history is not labelled live OTEL.
 - Read-only configuration health for ignored Codex settings and enabled MCP launch commands that cannot resolve, with deduplicated file/line evidence and remediation.
+- Skills Cleanup separates shared links from distinct files, flags exact SKILL.md copies and version drift, and offers individual review briefs. An explicit Share sheet can create one global directory link for another agent after previewing the destination; it refuses occupied paths and managed cache sources.
+- Projects includes folders with inherited or global instructions and compares agent-specific potential startup instruction tokens with the exact contributing paths. These are estimates, not measured prompts; skill bodies are excluded.
 - No automatic configuration writes, prompt bodies, responses, tool arguments, or results.
 
 ## Run locally
@@ -48,11 +50,11 @@ The app requires macOS 14 or newer. Its Codex adapter reads the loopback-only lo
 
 ContextDaddy runs [ccusage](https://github.com/ccusage/ccusage) 20.0.20 directly in offline mode for local history. The packaged app carries its own pinned helper and [MIT acknowledgement](CONTEXTDADDY_NOTICES.md); no CodeVetter installation or CLI is needed at runtime. A **Refresh history** action rescans local logs. **Check allowance** separately calls Codex app-server and Claude Code `/usage` through their installed CLIs; opt-in automatic checking uses the same adapters with a 15-minute minimum interval. These readings are not ccusage totals.
 
-The general usage dashboard lives in ContextDaddy's Focus Desk. Devin's distinct indexed history comes from a bounded, read-only scan of the Devin CLI SQLite session index, separate from ccusage. It deduplicates repeated assistant message IDs and reports daily token classes and models for each range. Select **Devin index** in Historical usage to chart this source independently. Devin cost remains explicitly unavailable until a provider-verified rate source exists; a missing or unreadable index is never presented as zero usage.
+The general usage dashboard lives in ContextDaddy's Focus Desk. Devin's distinct indexed history comes from a bounded, read-only scan of the Devin CLI SQLite session index, separate from ccusage. It deduplicates repeated assistant message IDs and reports daily token classes and models for each range. Select **Devin** inside Local History to chart this source independently. Devin cost remains explicitly unavailable until a provider-verified rate source exists; a missing or unreadable index is never presented as zero usage.
 
 To create the local `.app` after a build, run `python3 scripts/package-contextdaddy.py --ccusage /path/to/ccusage`. The packager verifies the exact 20.0.20 helper, copies it into ContextDaddy's bundle, and selects the newest available release or debug executable so an older build product cannot silently replace the interface. A matching helper already installed in a standard command location is detected automatically; CodeVetter is not searched.
 
-For a public download, use `scripts/release-contextdaddy.py` only after building the release executable. It requires an installed Developer ID Application identity, an existing notarization Keychain profile, and an explicit ccusage 20.0.20 path. It creates a new, isolated signed and notarized DMG with a checksum and receipt; it does not publish anything. Qualify the installed app and GitHub release assets before making a public-release claim. StorageDaddy's separate release tooling does not apply to ContextDaddy.
+For a public download, use `scripts/release-contextdaddy.py` only after building the release executable. Pass an explicit `--version` and increasing `--build`, an installed Developer ID Application identity, an existing notarization Keychain profile, and a ccusage 20.0.20 path. It creates a new, isolated signed and notarized DMG with a checksum and receipt; it does not publish anything. Qualify the installed app and GitHub release assets before making a public-release claim. StorageDaddy's separate release tooling does not apply to ContextDaddy.
 
 ## Architecture
 

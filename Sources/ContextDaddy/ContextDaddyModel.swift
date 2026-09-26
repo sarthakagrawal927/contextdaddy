@@ -40,7 +40,8 @@ enum LocalHistorySource: String, CaseIterable, Identifiable {
 
 enum SkillFilter: String, CaseIterable, Identifiable {
     case all = "All"
-    case automatic = "Automatic"
+    case available = "Can discover"
+    case automatic = "Auto-invocable"
     case manual = "Manual only"
     case model = "Model only"
     case disabled = "Disabled"
@@ -52,7 +53,13 @@ enum SkillFilter: String, CaseIterable, Identifiable {
 
 enum SkillsMode: String, CaseIterable, Identifiable {
     case ledger = "How skills run"
-    case redundancy = "Redundancy review"
+    case redundancy = "Cleanup"
+    var id: String { rawValue }
+}
+
+enum SkillCleanupFocus: String, CaseIterable, Identifiable {
+    case sharedGlobal = "Shared global"
+    case separateFiles = "Separate files"
     var id: String { rawValue }
 }
 
@@ -136,8 +143,9 @@ final class ContextDaddyModel {
     var configurationIssueVerification: ConfigurationIssueVerification?
     var isVerifyingConfigurationIssues = false
     var search = ""
-    var filter: SkillFilter = .all
+    var filter: SkillFilter = .available
     var skillsMode: SkillsMode = .ledger
+    var cleanupFocus: SkillCleanupFocus = .sharedGlobal
     var redundancyKindFilter: RedundancyKindFilter = .review
     var redundancyAgentFilter: RedundancyAgentFilter = .all
     var selectedRuntime: AgentRuntime = .codex
@@ -207,6 +215,7 @@ final class ContextDaddyModel {
                 || record.exposures.contains { $0.logicalPath.localizedCaseInsensitiveContains(search) }
             let matchesFilter = switch filter {
             case .all: true
+            case .available: record.policy(for: selectedRuntime)?.isExposed == true
             case .automatic: record.policy(for: selectedRuntime)?.mode == .automatic
             case .manual: record.policy(for: selectedRuntime)?.mode == .manualOnly
             case .model: record.policy(for: selectedRuntime)?.mode == .modelOnly

@@ -55,6 +55,8 @@ struct ContextDaddyModelTests {
         )
 
         model.selectedRuntime = .codex
+        #expect(model.filter == .available)
+        #expect(model.visibleSkills.map(\.name) == ["auto", "manual", "default"])
         model.filter = .manual
         #expect(model.visibleSkills.map(\.name) == ["manual"])
         model.filter = .notExposed

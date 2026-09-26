@@ -3,6 +3,41 @@ import Testing
 @testable import ContextCore
 
 struct SkillPolicyResolverTests {
+    @Test func placementKeepsAliasesSeparateFromDuplicateDefinitions() {
+        func exposure(_ path: String, _ scope: AIContextScope, _ provider: AIContextProvider,
+                      _ origin: AIContextOrigin = .conditional) -> SkillExposure {
+            SkillExposure(logicalPath: path, resolvedPath: "/source/shared/SKILL.md", source: "Fixture",
+                          scope: scope, provider: provider, applicability: origin)
+        }
+        let shared = SkillRecord(
+            id: "/source/shared/SKILL.md", name: "shared", description: "Fixture", logicalBytes: 10,
+            modified: .distantPast,
+            exposures: [
+                exposure("/home/.agents/skills/shared/SKILL.md", .global, .agents),
+                exposure("/home/.claude/skills/shared/SKILL.md", .global, .claude),
+                exposure("/home/.codex/plugins/cache/shared/SKILL.md", .global, .codex, .installedOnly),
+            ],
+            policies: [
+                SkillRuntimePolicy(runtime: .codex, mode: .automatic, explicit: false, reason: "Fixture", invocation: "$shared"),
+                SkillRuntimePolicy(runtime: .claude, mode: .manualOnly, explicit: true, reason: "Fixture", invocation: "/shared"),
+            ]
+        )
+        let separate = SkillRecord(
+            id: "/other/shared/SKILL.md", name: "shared", description: "Distinct file", logicalBytes: 10,
+            modified: .distantPast,
+            exposures: [exposure("/work/.codex/skills/shared/SKILL.md", .project, .codex)],
+            policies: [SkillRuntimePolicy(runtime: .codex, mode: .automatic, explicit: false,
+                                          reason: "Fixture", invocation: "$shared")]
+        )
+        let placement = SkillPlacementSummary(records: [shared, separate])
+        #expect(placement.globalCount == 1)
+        #expect(placement.crossAgentCount == 1)
+        #expect(placement.multiPathCount == 1)
+        #expect(placement.sharedGlobalRecords.map(\.id) == [shared.id])
+        #expect(shared.activePathCount == 2)
+        #expect(shared.globalRuntimes == [.claude, .codex])
+    }
+
     @Test func portableManualPolicyAppliesAcrossRuntimes() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let skill = root.appendingPathComponent(".agents/skills/manual/SKILL.md")

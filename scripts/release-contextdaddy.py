@@ -30,6 +30,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--identity", required=True, help="Installed Developer ID Application identity")
     parser.add_argument("--notary-profile", required=True, help="Existing Keychain profile name; never pass credentials")
+    parser.add_argument("--version", required=True, help="Numeric public version")
+    parser.add_argument("--build", required=True, type=int, help="Positive, increasing build number")
     parser.add_argument("--ccusage", required=True, type=Path, help="Pinned ccusage 20.0.20 executable")
     parser.add_argument("--output", required=True, type=Path, help="New output directory; never overwritten")
     args = parser.parse_args()
@@ -52,7 +54,8 @@ def main():
     stage.mkdir()
     app = stage / "ContextDaddy.app"
     run(sys.executable, ROOT / "scripts/package-contextdaddy.py", binary,
-        "--ccusage", args.ccusage.resolve(), "--output", app, "--unsigned")
+        "--ccusage", args.ccusage.resolve(), "--output", app, "--unsigned",
+        "--version", args.version, "--build", args.build)
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
     helper = app / "Contents/Helpers/ccusage"
     run("codesign", "--force", "--sign", args.identity, "--timestamp", "--options", "runtime", helper)

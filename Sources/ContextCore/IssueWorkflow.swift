@@ -89,7 +89,7 @@ public enum IssueBriefFormatter {
         var lines = [
             "# ContextDaddy skill review — \(actionable.count) findings",
             "",
-            "Review each finding against the current files before editing. Fix confirmed conflicts in writable source locations only. Do not delete files, change managed caches, touch secrets or production configuration, or assume duplicate bytes equal token savings. Preserve distinct skills when their responsibilities differ. Run the smallest relevant checks. Report each issue ID as changed, intentionally kept, blocked, or unverified with file evidence. ContextDaddy will independently rescan; do not claim success solely from this brief.",
+            "Review each finding against the current files before editing. Exact-copy evidence covers SKILL.md only; inspect supporting files before consolidating directories. Fix confirmed conflicts in writable source locations only. Do not delete files, change managed caches, touch secrets or production configuration, or assume duplicate bytes equal token savings. Preserve distinct skills when their responsibilities differ. Run the smallest relevant checks. Report each issue ID as changed, intentionally kept, blocked, or unverified with file evidence. ContextDaddy will independently rescan; do not claim success solely from this brief.",
             "",
         ]
         for (index, finding) in actionable.enumerated() {

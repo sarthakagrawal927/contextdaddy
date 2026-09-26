@@ -7,6 +7,8 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var model = model
+        let chromeHeight: CGFloat = 64
+        GeometryReader { window in
         NavigationSplitView {
             VStack(alignment: .leading, spacing: 0) {
                 BrandMark()
@@ -86,7 +88,7 @@ struct RootView: View {
                 // A dedicated chrome row reduces the height offered to each
                 // destination. Padding around a full-height GeometryReader
                 // instead pushed bottom controls below the window edge.
-                Color.clear.frame(height: 64)
+                Color.clear.frame(height: chromeHeight)
                 Group {
                     if model.evidenceOpen {
                         SourcesHubView()
@@ -99,7 +101,8 @@ struct RootView: View {
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .frame(height: max(0, window.size.height - chromeHeight), alignment: .topLeading)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(DaddyTheme.canvas)
@@ -110,6 +113,8 @@ struct RootView: View {
         .tint(DaddyTheme.mint)
         .buttonStyle(ContextDaddyButtonStyle())
         .toolbar(.hidden, for: .windowToolbar)
+        .frame(width: window.size.width, height: window.size.height)
+        }
     }
 }
 
@@ -245,6 +250,60 @@ struct SourcesHubView: View {
     }
 }
 
+struct FilesScanAnswerView: View {
+    @Environment(ContextDaddyModel.self) private var model
+
+    private var physicalFileCount: Int {
+        Set(model.inventory.map { $0.resolvedPath ?? $0.path }).count
+    }
+
+    var body: some View {
+        Panel {
+            VStack(alignment: .leading, spacing: 11) {
+                Text("What did this scan find?").font(.headline)
+                Text(model.discoveryReport == nil
+                     ? "The file inventory is not available yet. Refresh the scan to see local evidence."
+                     : model.sourcesMode == .inventory
+                       ? "These are discovered local files. Open a source for paths, or switch to Diagnostics for scan limits and configuration findings."
+                       : "The scan is bounded. Review its limits, checked folders, and configuration findings below; switch to Inventory for file paths.")
+                    .font(.caption).foregroundStyle(DaddyTheme.muted)
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 150), spacing: 10), count: 3), spacing: 10) {
+                    answer("Physical files", model.discoveryReport == nil ? "—" : physicalFileCount.formatted(),
+                           "Linked entries count once", DaddyTheme.mint)
+                    answer("Scan coverage", model.catalog.map { $0.coverage.isPartial ? "Partial" : "Complete" } ?? "Unknown",
+                           coverageDetail, model.catalog?.coverage.isPartial == true ? DaddyTheme.amber : DaddyTheme.blue)
+                    answer("Configuration", model.configurationHealth.scannedFiles.isEmpty ? "Unknown" : model.configurationHealth.issues.count.formatted(),
+                           model.configurationHealth.scannedFiles.isEmpty ? "No supported files checked"
+                             : model.configurationHealth.issues.isEmpty ? "No structural file issues" : "Structural file issues found",
+                           model.configurationHealth.scannedFiles.isEmpty ? DaddyTheme.muted
+                             : model.configurationHealth.issues.isEmpty ? DaddyTheme.mint : DaddyTheme.amber)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var coverageDetail: String {
+        guard let coverage = model.catalog?.coverage else { return "Waiting for inventory" }
+        if let reason = coverage.limitReasons.first { return reason }
+        if coverage.skippedLinks > 0 { return "\(coverage.skippedLinks) links skipped" }
+        if coverage.unreadableCount > 0 { return "\(coverage.unreadableCount) unreadable entries" }
+        return "Within the configured search limits"
+    }
+
+    private func answer(_ title: String, _ value: String, _ detail: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.caption.weight(.semibold)).foregroundStyle(color)
+            Text(value).font(.title2.weight(.semibold)).monospacedDigit()
+            Text(detail).font(.caption2).foregroundStyle(DaddyTheme.muted)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.06), in: RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(color.opacity(0.2)))
+    }
+}
+
 struct SkillsLedgerView: View {
     @Environment(ContextDaddyModel.self) private var model
 
@@ -256,10 +315,10 @@ struct SkillsLedgerView: View {
                 VStack(alignment: .leading, spacing: compact ? 11 : 16) {
                 ScreenHeader(
                     eyebrow: model.skillsMode == .ledger ? "Skill access" : "Decision support",
-                    title: model.skillsMode == .ledger ? "Can \(model.selectedRuntime.rawValue) use these skills?" : "Redundancy review",
+                    title: model.skillsMode == .ledger ? "What skills can \(model.selectedRuntime.rawValue) discover?" : "Skill cleanup map",
                     subtitle: model.skillsMode == .ledger
-                        ? "See what \(model.selectedRuntime.rawValue) may load automatically, what you invoke manually, and what it cannot discover."
-                        : "Evidence-ranked consolidation candidates across agents, with false-positive boundaries left visible.",
+                        ? "Choose an agent to see what it can find. Invocation rules do not prove what was preloaded or used in a run."
+                        : "See global sharing and separate definitions before changing any file. Open a row for agents, paths, and policy evidence.",
                     art: .skills,
                     compact: compact
                 )
@@ -290,13 +349,15 @@ struct SkillsLedgerView: View {
                         selectFilter: { model.filter = model.filter == $0 ? .all : $0 },
                         compact: compact
                     )
-                    if let reviewCount = model.redundancySummary?.reviewCount, reviewCount > 0 {
+                    evidenceLinks
+                    if let placement = model.catalog?.placement {
                         Button {
+                            model.cleanupFocus = .sharedGlobal
                             model.skillsMode = .redundancy
                         } label: {
                             HStack(spacing: 9) {
-                                Image(systemName: "sparkle.magnifyingglass")
-                                Text("Review \(reviewCount.formatted()) evidence-backed skill opportunities")
+                                Image(systemName: "point.3.connected.trianglepath.dotted")
+                                Text("Cleanup map: \(placement.sharedGlobalRecords.count.formatted()) shared global skills · \((model.redundancySummary?.reviewCount ?? 0).formatted()) separate-file review candidates")
                                 Spacer()
                                 Image(systemName: "arrow.right")
                             }
@@ -362,7 +423,7 @@ struct SkillsLedgerView: View {
 
     @ViewBuilder private var inventoryTimestamp: some View {
         if let generated = model.catalog?.generatedAt {
-            Text("Inventory \(generated.formatted(date: .omitted, time: .shortened))")
+            Text("Inventory \(generated.formatted(date: .abbreviated, time: .shortened))")
                 .font(.caption).foregroundStyle(DaddyTheme.muted)
         }
     }
@@ -387,12 +448,27 @@ struct SkillsLedgerView: View {
             .font(.caption).foregroundStyle(DaddyTheme.muted)
             .fixedSize()
     }
+
+    private var evidenceLinks: some View {
+        HStack(spacing: 16) {
+            Text("Inspect exact paths in the skill rows below.")
+                .foregroundStyle(DaddyTheme.muted)
+            Button("Browse projects →") { model.show(.projects) }
+            Button("Files & diagnostics →") {
+                model.showEvidence(model.configurationHealth.issues.isEmpty ? .inventory : .diagnostics)
+            }
+        }
+        .font(.caption)
+        .buttonStyle(.plain)
+        .foregroundStyle(DaddyTheme.mint)
+    }
 }
 
 private struct SkillRow: View {
     let skill: SkillRecord
     let selectedRuntime: AgentRuntime
     @State private var expanded = false
+    @State private var showShare = false
 
     var body: some View {
         Panel {
@@ -402,7 +478,19 @@ private struct SkillRow: View {
                         Image(systemName: expanded ? "chevron.down" : "chevron.right").frame(width: 16)
                     }.buttonStyle(.plain).foregroundStyle(DaddyTheme.muted)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(skill.name).font(.headline)
+                        HStack(spacing: 7) {
+                            Text(skill.name).font(.headline).lineLimit(1)
+                            if !skill.globalExposures.isEmpty {
+                                Text("GLOBAL").font(.system(size: 9, weight: .bold, design: .rounded))
+                                    .foregroundStyle(DaddyTheme.mint)
+                            }
+                            if skill.globalRuntimes.count > 1 {
+                                Text("\(skill.globalRuntimes.count) agents").font(.caption2).foregroundStyle(DaddyTheme.blue)
+                            }
+                            if skill.activePathCount > 1 {
+                                Text("\(skill.activePathCount) paths · one file").font(.caption2).foregroundStyle(DaddyTheme.amber)
+                            }
+                        }
                         Text(skill.description).font(.caption).foregroundStyle(DaddyTheme.muted).lineLimit(expanded ? 4 : 1)
                         HStack(spacing: 6) {
                             Text(skill.exposures.first?.source ?? "Unknown source")
@@ -434,6 +522,12 @@ private struct SkillRow: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                 if expanded {
                     Divider().overlay(DaddyTheme.line)
+                    Text("Physical definition: \((skill.id as NSString).abbreviatingWithTildeInPath)")
+                        .font(.caption2.monospaced()).foregroundStyle(DaddyTheme.muted).textSelection(.enabled)
+                    if !skill.activeExposures.isEmpty {
+                        Button("Share with another agent…", systemImage: "link.badge.plus") { showShare = true }
+                            .font(.caption).foregroundStyle(DaddyTheme.mint)
+                    }
                     ForEach(skill.policies) { policy in
                         ViewThatFits(in: .horizontal) {
                             policyDetail(policy, compact: false)
@@ -446,18 +540,21 @@ private struct SkillRow: View {
                                 Image(systemName: "link").foregroundStyle(DaddyTheme.blue)
                                 Text(exposure.logicalPath).font(.caption.monospaced()).textSelection(.enabled)
                                 Spacer()
-                                Text(exposure.source).font(.caption2).foregroundStyle(DaddyTheme.muted)
+                                Text("\(exposure.provider.rawValue) · \(exposure.scope.rawValue) · \(exposure.applicability.rawValue)")
+                                    .font(.caption2).foregroundStyle(DaddyTheme.muted)
                             }
                             VStack(alignment: .leading, spacing: 4) {
                                 Label(exposure.logicalPath, systemImage: "link")
                                     .font(.caption.monospaced()).foregroundStyle(DaddyTheme.blue).textSelection(.enabled)
-                                Text(exposure.source).font(.caption2).foregroundStyle(DaddyTheme.muted)
+                                Text("\(exposure.provider.rawValue) · \(exposure.scope.rawValue) · \(exposure.applicability.rawValue)")
+                                    .font(.caption2).foregroundStyle(DaddyTheme.muted)
                             }
                         }
                     }
                 }
             }
         }
+        .sheet(isPresented: $showShare) { SkillShareSheet(record: skill) }
     }
 
     private func policyDetail(_ policy: SkillRuntimePolicy, compact: Bool) -> some View {
@@ -543,30 +640,33 @@ struct CoverageView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                ScreenHeader(eyebrow: "Evidence map", title: "What ContextDaddy can see", subtitle: "Bounded roots and adapter gaps are part of the product, not footnotes.", art: .overview)
+                ScreenHeader(eyebrow: "Files & diagnostics", title: "Scan status and configuration issues", subtitle: "See which folders were scanned, what could not be read, and settings that may need fixing.", art: .overview)
+                FilesScanAnswerView()
                 HStack {
-                    Label(model.discoveryStatus, systemImage: model.isLoading ? "arrow.triangle.2.circlepath" : "checkmark.circle")
-                        .font(.caption).foregroundStyle(model.isLoading ? DaddyTheme.blue : DaddyTheme.muted)
+                    Label(model.discoveryStatus, systemImage: model.isLoading ? "arrow.triangle.2.circlepath"
+                          : model.catalog?.coverage.isPartial == true ? "exclamationmark.circle" : "checkmark.circle")
+                        .font(.caption).foregroundStyle(model.isLoading ? DaddyTheme.blue
+                                                       : model.catalog?.coverage.isPartial == true ? DaddyTheme.amber : DaddyTheme.muted)
                     Spacer()
                     Button("Add folder…", systemImage: "folder.badge.plus", action: addFolders)
                 }
                 if model.isLoading {
                     RefreshContinuityBanner(started: model.loadStarted, hasPreviousResults: model.discoveryReport != nil)
                 }
-                ConfigurationHealthView(report: model.configurationHealth)
+                if !model.configurationHealth.issues.isEmpty || model.configurationHealth.scannedFiles.isEmpty {
+                    ConfigurationHealthView(report: model.configurationHealth)
+                }
                 if let catalog = model.catalog {
                     LazyVGrid(
-                        columns: Array(repeating: GridItem(.flexible(minimum: 120), spacing: 10), count: 4),
+                        columns: Array(repeating: GridItem(.flexible(minimum: 120), spacing: 10), count: 3),
                         spacing: 10
                     ) {
-                        fact("Physical skills", "\(catalog.physicalSkillCount)")
-                        fact("Exposures", "\(catalog.exposureCount)")
-                        fact("Visited entries", "\(catalog.coverage.visitedEntries)")
-                        fact("Coverage", catalog.coverage.isPartial ? "Partial" : "Complete")
-                        fact("Projects", "\(model.projects.count)")
+                        fact("Unique skill files", "\(catalog.physicalSkillCount)")
+                        fact("Agent-visible copies", "\(catalog.exposureCount)")
+                        fact("Entries checked", "\(catalog.coverage.visitedEntries)")
                         fact("Unreadable", "\(catalog.coverage.unreadableCount)")
                         fact("Links skipped", "\(catalog.coverage.skippedLinks)")
-                        fact("Roots", "\(catalog.coverage.roots.count)")
+                        fact("Folders scanned", "\(catalog.coverage.roots.count)")
                     }
                     Panel {
                         VStack(alignment: .leading, spacing: 10) {

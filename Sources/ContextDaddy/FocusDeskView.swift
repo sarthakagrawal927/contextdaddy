@@ -13,6 +13,10 @@ struct FocusDeskView: View {
     @State private var showSelectedService = false
     @State private var showDiagnostics = false
 
+    init(initiallyShowsDiagnostics: Bool = false) {
+        _showDiagnostics = State(initialValue: initiallyShowsDiagnostics)
+    }
+
     var body: some View {
         @Bindable var model = model
         let dashboard = model.usageDashboard
@@ -42,18 +46,19 @@ struct FocusDeskView: View {
                     ScreenHeader(
                         eyebrow: "Account limits and local history",
                         title: "Usage",
-                        subtitle: "Codex and Claude allowances, plus Devin's separate indexed history. Live activity is in OpenTelemetry.",
+                        subtitle: compact
+                            ? "Account limits and local history. Live activity is in OpenTelemetry."
+                            : "Codex and Claude allowances, plus local history for Codex, Claude, Grok, and Devin. Live activity is in OpenTelemetry.",
                         art: .telemetry,
                         hero: !compact,
                         compact: compact
                     )
 
                     UsageAllowanceView(stacked: narrowFilters)
-                    DevinUsagePanel()
                     UnifiedUsageHistoryView()
 
                     Button {
-                        withAnimation(.easeInOut(duration: 0.18)) { showDiagnostics.toggle() }
+                        showDiagnostics.toggle()
                     } label: {
                         HStack(spacing: 9) {
                             Image(systemName: "chart.bar.xaxis")
@@ -153,7 +158,7 @@ struct FocusDeskView: View {
                                 HStack(spacing: 8) {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(session.projectName).font(.subheadline.weight(.medium)).lineLimit(1)
-                                        Text(session.lastActivity.map(shortTime) ?? "Time unavailable")
+                                        Text(session.lastActivity.map(UsageDisplayDate.timestamp) ?? "Time unavailable")
                                             .font(.caption2).foregroundStyle(DaddyTheme.muted)
                                     }
                                     Spacer()
@@ -253,7 +258,7 @@ struct FocusDeskView: View {
                         BarMark(x: .value("Period", point.period), y: .value(model.usageMetric.rawValue, point.value))
                             .foregroundStyle(DaddyTheme.mint)
                             .cornerRadius(2)
-                            .accessibilityLabel(point.period)
+                            .accessibilityLabel(UsageDisplayDate.period(point.period, scale: model.usageScale))
                             .accessibilityValue(chartValue(point.value, metric: model.usageMetric))
                     }
                     .chartXSelection(value: $selectedPeriod)
@@ -273,13 +278,13 @@ struct FocusDeskView: View {
                     .frame(height: compact ? 160 : 190)
                     .accessibilityLabel("\(model.usageMetric.rawValue) by \(model.usageScale.rawValue.lowercased())")
                     HStack {
-                        Text(dashboard.trend.first?.period ?? "")
+                        Text(dashboard.trend.first.map { UsageDisplayDate.period($0.period, scale: model.usageScale) } ?? "")
                         Spacer()
-                        Text(dashboard.trend.last?.period ?? "")
+                        Text(dashboard.trend.last.map { UsageDisplayDate.period($0.period, scale: model.usageScale) } ?? "")
                     }
                     .font(.caption2.monospacedDigit()).foregroundStyle(DaddyTheme.muted)
                     if let selected = dashboard.trend.first(where: { $0.period == selectedPeriod }) {
-                        Text("\(selected.period) · \(selectedChartValue(selected.value, metric: model.usageMetric)) \(model.usageMetric.rawValue.lowercased())")
+                        Text("\(UsageDisplayDate.period(selected.period, scale: model.usageScale)) · \(selectedChartValue(selected.value, metric: model.usageMetric)) \(model.usageMetric.rawValue.lowercased())")
                             .font(.caption.weight(.semibold)).foregroundStyle(DaddyTheme.mint)
                     } else {
                         Text("Select a bar for its period and value.")
@@ -347,7 +352,7 @@ struct FocusDeskView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(model.usageService == .devin ? "Devin · separate local source" : "ccusage \(model.usageReport?.provenance.version ?? "")")
             if let generated = model.usageReport?.provenance.generatedAt {
-                Text("Updated \(shortTime(generated))")
+                Text("Updated \(UsageDisplayDate.timestamp(generated))")
             }
         }
         .lineLimit(1)
@@ -413,7 +418,7 @@ struct FocusDeskView: View {
                         .font(.caption2).foregroundStyle(DaddyTheme.amber)
                 }
                 HStack {
-                    if let status { Text("\(status.source) · \(shortTime(status.checkedAt))").lineLimit(1) }
+                    if let status { Text("\(status.source) · \(UsageDisplayDate.timestamp(status.checkedAt))").lineLimit(1) }
                     Spacer(minLength: 0)
                     Button(model.isQuotaLoading ? "Checking…" : "Check allowance") {
                         Task { await model.refreshQuota() }
@@ -429,7 +434,7 @@ struct FocusDeskView: View {
     private var sourceDetails: some View {
         VStack(alignment: .leading, spacing: 9) {
             if let report = model.usageReport {
-                sourceLine("Local report", "\(report.provenance.engine) \(report.provenance.version) · \(report.status) · generated \(report.provenance.generatedAt)")
+                sourceLine("Local report", "\(report.provenance.engine) \(report.provenance.version) · \(report.status) · generated \(UsageDisplayDate.timestamp(report.provenance.generatedAt))")
                 if let agents = report.provenance.detectedAgents, !agents.isEmpty {
                     sourceLine("Detected agents", agents.joined(separator: ", "))
                 }
@@ -445,7 +450,7 @@ struct FocusDeskView: View {
                 sourceLine("Local report", model.usageError ?? "No ccusage report loaded")
             }
             if let status = model.quotaStatus {
-                sourceLine("Allowance", "\(status.source) · checked \(status.checkedAt) · \(status.status)")
+                sourceLine("Allowance", "\(status.source) · checked \(UsageDisplayDate.timestamp(status.checkedAt)) · \(status.status)")
             } else {
                 sourceLine("Allowance", "No live check for the selected service")
             }
@@ -524,10 +529,4 @@ struct FocusDeskView: View {
         return UInt64(max(0, value)).formatted()
     }
 
-    private func shortTime(_ value: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let date = formatter.date(from: value) ?? ISO8601DateFormatter().date(from: value)
-        return date?.formatted(date: .abbreviated, time: .shortened) ?? value
-    }
 }

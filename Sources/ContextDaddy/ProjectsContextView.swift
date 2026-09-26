@@ -4,7 +4,7 @@ import SwiftUI
 private enum ProjectSort: String, CaseIterable, Identifiable {
     case name = "Name"
     case files = "Files"
-    case size = "Context size"
+    case size = "Startup estimate"
     var id: String { rawValue }
 }
 
@@ -12,16 +12,27 @@ struct ProjectsContextView: View {
     @Environment(ContextDaddyModel.self) private var model
     @State private var search = ""
     @State private var provider = "All agents"
-    @State private var sort: ProjectSort = .files
+    @State private var sort: ProjectSort = .size
     @State private var ascending = false
     @State private var page = 0
     @State private var selectedProjectID: String?
     @State private var previewItem: AIContextItem?
     private let pageSize = 12
 
+    init(initiallySelectedProjectID: String? = nil) {
+        _selectedProjectID = State(initialValue: initiallySelectedProjectID)
+    }
+
     private var rows: [AIContextProject] {
-        model.projects.filter { project in
-            let providerMatch = provider == "All agents" || project.providers.contains { $0.rawValue == provider }
+        let grouped = Dictionary(grouping: model.folderRankings, by: \.path)
+        let scopedLoads = grouped.mapValues { rankings in
+            let loads = AIContextProjectCatalog.agentLoads(in: rankings.first?.path ?? "", rankings: rankings)
+            return provider == "All agents" ? loads : loads.filter { $0.provider.rawValue == provider }
+        }
+        let startupBytes = scopedLoads.mapValues { $0.map(\.instructionBytes).max() ?? 0 }
+        return model.projects.filter { project in
+            let loads = scopedLoads[project.path] ?? []
+            let providerMatch = provider == "All agents" || loads.contains { $0.provider.rawValue == provider }
             let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
             let textMatch = query.isEmpty || project.path.localizedCaseInsensitiveContains(query)
                 || project.providers.contains { $0.rawValue.localizedCaseInsensitiveContains(query) }
@@ -35,7 +46,7 @@ struct ProjectsContextView: View {
             switch sort {
             case .name: comparison = left.name.localizedStandardCompare(right.name)
             case .files: comparison = compare(Int64(left.projectItemCount), Int64(right.projectItemCount))
-            case .size: comparison = compare(left.projectLogicalBytes, right.projectLogicalBytes)
+            case .size: comparison = compare(startupBytes[left.path] ?? 0, startupBytes[right.path] ?? 0)
             }
             if comparison == .orderedSame { return left.path < right.path }
             return ascending ? comparison == .orderedAscending : comparison == .orderedDescending
@@ -52,10 +63,23 @@ struct ProjectsContextView: View {
             VStack(alignment: .leading, spacing: 18) {
             ScreenHeader(
                 eyebrow: "Project context",
-                title: "Instructions and skills by project",
-                subtitle: "These files were discovered for each project. Availability does not mean they were loaded into a live prompt.",
+                title: "How much context could load in each checked folder?",
+                subtitle: "Compare potential startup instructions by folder and agent. Open a folder for global, parent, and local sources; actual prompt loading is not measured.",
                 art: .projects
             )
+            Panel(padding: 14) {
+                HStack(alignment: .top, spacing: 14) {
+                    Text(model.discoveryReport == nil ? "—" : model.projects.count.formatted())
+                        .font(.title2.weight(.semibold)).monospacedDigit().foregroundStyle(DaddyTheme.mint)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Folders assessed").font(.subheadline.weight(.semibold))
+                        Text("Includes folders that inherit context even when they contain no local files. Filter by agent or sort by startup estimate to find the largest potential loads.")
+                            .font(.caption).foregroundStyle(DaddyTheme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 10) {
                     projectSearch
@@ -79,7 +103,7 @@ struct ProjectsContextView: View {
                     ForEach(visibleRows) { project in
                         ProjectRow(
                             project: project,
-                            loads: AIContextProjectCatalog.agentLoads(in: project.path, rankings: model.folderRankings),
+                            loads: visibleLoads(for: project),
                             expanded: selectedProjectID == project.id,
                             toggle: { selectedProjectID = selectedProjectID == project.id ? nil : project.id },
                             preview: { previewItem = $0 }
@@ -114,9 +138,13 @@ struct ProjectsContextView: View {
 
     private func resetPage() { page = 0; selectedProjectID = nil }
     private func compare(_ a: Int64, _ b: Int64) -> ComparisonResult { a == b ? .orderedSame : (a < b ? .orderedAscending : .orderedDescending) }
+    private func visibleLoads(for project: AIContextProject) -> [AIContextFolderRanking] {
+        let loads = AIContextProjectCatalog.agentLoads(in: project.path, rankings: model.folderRankings)
+        return provider == "All agents" ? loads : loads.filter { $0.provider.rawValue == provider }
+    }
 
     private var projectSearch: some View {
-        TextField("Search projects, files, or paths", text: $search)
+        TextField("Search folders, files, or paths", text: $search)
             .textFieldStyle(.roundedBorder)
             .frame(minWidth: 240, maxWidth: 380)
     }
@@ -134,7 +162,7 @@ struct ProjectsContextView: View {
                 title: "Sort",
                 selection: $sort,
                 choices: ProjectSort.allCases.map { ContextChoice($0, $0.rawValue) },
-                width: 145
+                width: 180
             )
             Button { ascending.toggle() } label: {
                 Image(systemName: ascending ? "arrow.up" : "arrow.down")
@@ -149,7 +177,7 @@ struct ProjectsContextView: View {
     }
 
     private var projectCount: some View {
-        Text("\(rows.count.formatted()) matching projects")
+        Text("\(rows.count.formatted()) matching folders")
             .font(.caption).foregroundStyle(DaddyTheme.muted).fixedSize()
     }
 }
@@ -199,10 +227,12 @@ private struct ProjectRow: View {
     }
 
     private var projectSize: some View {
-        VStack(alignment: .trailing, spacing: 3) {
-            Text("\(project.projectItemCount.formatted()) files found").font(.subheadline.weight(.semibold))
-            Text(ByteCountFormatter.string(fromByteCount: project.projectLogicalBytes, countStyle: .file))
-                .font(.caption.monospacedDigit()).foregroundStyle(DaddyTheme.muted)
+        let leadingLoad = loads.max { $0.instructionBytes < $1.instructionBytes }
+        return VStack(alignment: .trailing, spacing: 3) {
+            Text(leadingLoad.map { "≈ \($0.estimatedStartupTokens.formatted()) tokens" } ?? "No estimate")
+                .font(.subheadline.weight(.semibold))
+            Text(leadingLoad.map { "\($0.provider.rawValue) potential startup" } ?? "No active agent sources found")
+                .font(.caption).foregroundStyle(DaddyTheme.muted)
         }
         .fixedSize()
     }
@@ -216,7 +246,7 @@ private struct ProjectDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Agent startup estimates").font(.headline)
+            Text("Potential startup instructions by agent").font(.headline)
             if loads.isEmpty {
                 Text("No agent-specific instruction estimate is available for this directory.")
                     .font(.caption).foregroundStyle(DaddyTheme.muted)
@@ -225,7 +255,7 @@ private struct ProjectDetail: View {
                     ForEach(loads) { AgentLoadCard(load: $0) }
                 }
             }
-            Text("Estimates use four bytes per token and exclude skill bodies, which usually load on demand. Rules, tools, memory, and conversation history can add more; this is not a live prompt measurement.")
+            Text("Estimates use four bytes per token. They exclude skill bodies, rules, tools, memory, and conversation history. The scan shows possible instruction inputs, not what an agent actually loaded.")
                 .font(.caption2).foregroundStyle(DaddyTheme.muted).fixedSize(horizontal: false, vertical: true)
             Text("Attributed locations").font(.headline)
             ForEach(project.locations) { location in
@@ -274,7 +304,7 @@ private struct AgentLoadCard: View {
                     .font(.system(size: 9, weight: .bold, design: .rounded))
                     .foregroundStyle(DaddyTheme.color(for: load.pressure))
             }
-            Text(load.automaticInstructionSourceCount == 0 ? "Not measured" : tokens(load.estimatedStartupTokens))
+            Text(tokens(load.estimatedStartupTokens))
                 .font(.title3.bold()).monospacedDigit().foregroundStyle(DaddyTheme.color(for: load.pressure))
             contribution("Global", load.globalBytes)
             contribution("Parent folders", load.inheritedBytes)
@@ -282,13 +312,31 @@ private struct AgentLoadCard: View {
             Divider().overlay(DaddyTheme.line)
             HStack { Text("Available skills"); Spacer(); Text(load.skillCount.formatted()).monospacedDigit() }
                 .font(.caption).foregroundStyle(DaddyTheme.muted)
+            if load.automaticInstructionSourceCount == 0 {
+                Text("No startup instruction files found for this agent.")
+                    .font(.caption2).foregroundStyle(DaddyTheme.muted)
+            } else {
+                DisclosureGroup("Show \(load.automaticInstructionSourceCount) instruction files") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(load.sources.filter { $0.item.kind == .instruction && [.global, .inherited, .local].contains($0.origin) }) { source in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(source.origin.rawValue) · \(ByteCountFormatter.string(fromByteCount: source.item.logicalBytes, countStyle: .file))")
+                                    .font(.caption2.weight(.semibold)).foregroundStyle(DaddyTheme.mint)
+                                Text(source.item.path).font(.caption2.monospaced())
+                                    .foregroundStyle(DaddyTheme.muted).textSelection(.enabled)
+                            }
+                        }
+                    }
+                }
+                .font(.caption2)
+            }
         }
         .padding(13).frame(maxWidth: .infinity, alignment: .leading)
         .background(DaddyTheme.raised).clipShape(RoundedRectangle(cornerRadius: 11))
     }
 
     private func contribution(_ label: String, _ bytes: Int64) -> some View {
-        HStack { Text(label); Spacer(); Text(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)).monospacedDigit() }
+        HStack { Text(label); Spacer(); Text(bytes == 0 ? "0 bytes" : ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)).monospacedDigit() }
             .font(.caption2).foregroundStyle(DaddyTheme.muted)
     }
 

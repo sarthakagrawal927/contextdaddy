@@ -30,7 +30,7 @@ public struct AIContextProject: Identifiable, Sendable, Equatable {
 public enum AIContextProjectCatalog {
     /// Scoped estimates for real agents, excluding installed-only cache evidence.
     public static func agentLoads(in directory: String, rankings: [AIContextFolderRanking]) -> [AIContextFolderRanking] {
-        let agents: Set<AIContextProvider> = [.codex, .claude, .cursor, .gemini]
+        let agents: Set<AIContextProvider> = [.codex, .claude, .cursor, .devin, .grok, .gemini]
         return rankings.filter {
             $0.path == directory && agents.contains($0.provider)
                 && $0.sources.contains { $0.origin != .installedOnly }
@@ -85,8 +85,7 @@ public enum AIContextProjectCatalog {
                 )
             }.sorted(by: locationOrder)
             let owned = locations.filter { $0.scope == .project }
-            var providers = Set(owned.flatMap(\.providers))
-            if providers.contains(.agents) { providers.insert(.codex) }
+            let providers = Set(agentLoads(in: projectPath, rankings: rankings).map(\.provider))
             return AIContextProject(
                 id: projectPath,
                 path: projectPath,
@@ -96,7 +95,7 @@ public enum AIContextProjectCatalog {
                 projectLogicalBytes: owned.reduce(0) { $0 + $1.logicalBytes },
                 providers: sortedProviders(providers)
             )
-        }.filter { $0.projectItemCount > 0 }.sorted {
+        }.sorted {
             let comparison = $0.name.localizedStandardCompare($1.name)
             return comparison == .orderedSame ? $0.path < $1.path : comparison == .orderedAscending
         }

@@ -12,7 +12,7 @@ struct ConfigurationHealthView: View {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Configuration health").font(.headline)
-                        Text("Ignored settings and broken enabled MCP launchers, deduplicated by root cause.")
+                        Text("Settings this app cannot use and enabled tool connections that may fail to start. Repeated reports are grouped together.")
                             .font(.caption).foregroundStyle(DaddyTheme.muted)
                     }
                     Spacer()

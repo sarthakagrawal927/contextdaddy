@@ -47,6 +47,24 @@ struct AIContextProjectsTests {
         #expect(loads.first?.estimatedStartupTokens == 100)
     }
 
+    @Test func retainsFoldersWithOnlyInheritedOrGlobalContext() throws {
+        let folder = "/work/child"
+        let inherited = item("/work/AGENTS.md", provider: .codex, kind: .instruction)
+        let global = item("/home/.claude/skills/demo/SKILL.md", scope: .global, provider: .claude, kind: .skill)
+        let projects = AIContextProjectCatalog.projects(from: report([
+            ranking(folder, provider: .codex, sources: [contribution(inherited, .inherited)], bytes: 400),
+            ranking(folder, provider: .claude, sources: [contribution(global, .conditional)]),
+        ]))
+        let project = try #require(projects.first)
+        #expect(project.path == folder)
+        #expect(project.projectItemCount == 0)
+        #expect(project.providers == [.claude, .codex])
+        #expect(AIContextProjectCatalog.agentLoads(in: folder, rankings: report([
+            ranking(folder, provider: .codex, sources: [contribution(inherited, .inherited)], bytes: 400),
+            ranking(folder, provider: .claude, sources: [contribution(global, .conditional)]),
+        ]).folderRankings).count == 2)
+    }
+
     private func item(_ path: String, resolvedPath: String? = nil, scope: AIContextScope = .project,
                       provider: AIContextProvider, kind: AIContextKind,
                       applicability: AIContextOrigin = .conditional) -> AIContextItem {

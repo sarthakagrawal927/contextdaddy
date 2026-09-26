@@ -20,9 +20,9 @@ struct UnifiedUsageHistoryView: View {
                         Text("LOCAL HISTORY · NOT PROVIDER ALLOWANCE")
                             .font(.system(size: 10, weight: .bold, design: .rounded))
                             .tracking(1).foregroundStyle(DaddyTheme.mint)
-                        Text("Historical usage").font(.title3.weight(.semibold))
+                        Text("Local History").font(.title3.weight(.semibold))
                         Text(model.usageHistorySource == .devin
-                             ? "Devin's read-only session index · tokens only, kept separate from ccusage."
+                             ? "Devin's read-only session index · tokens only. Its totals are separate from other agents."
                              : model.usageHistoryGrouping == .project
                              ? "Project identities from agent sessions · bucketed by last activity, separate from daily accounting."
                              : "Generated tokens, cache reads, and estimated cost from local agent logs.")
@@ -36,26 +36,56 @@ struct UnifiedUsageHistoryView: View {
 
                 controls
 
-                if model.usageHistorySource == .agentLogs, !agents.isEmpty {
-                    HStack(spacing: 7) {
-                        ForEach(agents, id: \.self) { agent in
-                            let included = model.usageHistoryAgents.isEmpty || model.usageHistoryAgents.contains(agent)
-                            Button { toggle(agent, among: agents) } label: {
-                                HStack(spacing: 5) {
-                                    Circle().fill(included ? DaddyTheme.mint : DaddyTheme.muted).frame(width: 6, height: 6)
-                                    Text(agent.capitalized)
-                                }
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10).frame(height: 32)
-                                .background(included ? DaddyTheme.mint.opacity(0.1) : DaddyTheme.raised,
-                                            in: RoundedRectangle(cornerRadius: 8))
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Filter \(agent.capitalized)")
-                            .accessibilityValue(included ? "Included" : "Excluded")
-                        }
-                        Spacer(minLength: 0)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 96, maximum: 160), spacing: 7)],
+                          alignment: .leading, spacing: 7) {
+                    Button {
+                        model.usageHistorySource = .agentLogs
+                        model.usageHistoryAgents = []
+                    } label: {
+                        Text("All logs")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10).frame(height: 32)
+                            .background(model.usageHistorySource == .agentLogs && model.usageHistoryAgents.isEmpty
+                                        ? DaddyTheme.mint.opacity(0.1) : DaddyTheme.raised,
+                                        in: RoundedRectangle(cornerRadius: 8))
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Show all agent logs")
+                    .accessibilityValue(model.usageHistorySource == .agentLogs && model.usageHistoryAgents.isEmpty
+                                        ? "Selected" : "Not selected")
+                    ForEach(agents, id: \.self) { agent in
+                        let included = model.usageHistorySource == .agentLogs &&
+                            (model.usageHistoryAgents.isEmpty || model.usageHistoryAgents.contains(agent))
+                        Button { select(agent, among: agents) } label: {
+                            HStack(spacing: 5) {
+                                Circle().fill(included ? DaddyTheme.mint : DaddyTheme.muted).frame(width: 6, height: 6)
+                                Text(agent.capitalized)
+                            }
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10).frame(height: 32)
+                            .background(included ? DaddyTheme.mint.opacity(0.1) : DaddyTheme.raised,
+                                        in: RoundedRectangle(cornerRadius: 8))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Filter \(agent.capitalized)")
+                        .accessibilityValue(included ? "Included" : "Excluded")
+                    }
+                    Button {
+                        model.usageHistorySource = .devin
+                    } label: {
+                        HStack(spacing: 5) {
+                            Circle().fill(model.usageHistorySource == .devin ? DaddyTheme.mint : DaddyTheme.muted)
+                                .frame(width: 6, height: 6)
+                            Text("Devin")
+                        }
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10).frame(height: 32)
+                        .background(model.usageHistorySource == .devin ? DaddyTheme.mint.opacity(0.1) : DaddyTheme.raised,
+                                    in: RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Show Devin indexed history")
+                    .accessibilityValue(model.usageHistorySource == .devin ? "Selected" : "Not selected")
                 }
 
                 if let history, !history.buckets.isEmpty {
@@ -111,8 +141,6 @@ struct UnifiedUsageHistoryView: View {
         @Bindable var model = model
         return LazyVGrid(columns: [GridItem(.adaptive(minimum: 170, maximum: 210), spacing: 7)],
                          alignment: .leading, spacing: 7) {
-            ContextChoiceMenu(title: "Source", selection: $model.usageHistorySource,
-                              choices: LocalHistorySource.allCases.map { ContextChoice($0, $0.rawValue) }, width: 190)
             ContextChoiceMenu(title: "Range", selection: $model.usageRange,
                               choices: UsageRange.allCases.map { ContextChoice($0, $0.title) }, width: 165)
             ContextChoiceMenu(title: "Scale", selection: $model.usageScale,
@@ -148,6 +176,7 @@ struct UnifiedUsageHistoryView: View {
                         BarMark(x: .value("Period", bucket.period),
                                 y: .value("Usage", history.value(in: bucket, series: item)), stacking: .standard)
                             .foregroundStyle(tone(index))
+                            .accessibilityLabel("\(UsageDisplayDate.period(bucket.period, scale: model.usageScale)) · \(item.label)")
                     }
                 }
             }
@@ -164,17 +193,17 @@ struct UnifiedUsageHistoryView: View {
             .frame(height: 190)
             .accessibilityLabel("Historical usage by \(model.usageHistoryGrouping.rawValue.lowercased())")
             HStack {
-                Text(history.buckets.first?.period ?? "")
+                Text(history.buckets.first.map { UsageDisplayDate.period($0.period, scale: model.usageScale) } ?? "")
                 Spacer()
-                Text(history.buckets.last?.period ?? "")
+                Text(history.buckets.last.map { UsageDisplayDate.period($0.period, scale: model.usageScale) } ?? "")
             }.font(.caption2.monospaced()).foregroundStyle(DaddyTheme.muted)
             Menu {
                 Button("Entire selected range") { selectedPeriod = nil }
                 ForEach(history.buckets) { bucket in
-                    Button(bucket.period) { selectedPeriod = bucket.period }
+                    Button(UsageDisplayDate.period(bucket.period, scale: model.usageScale)) { selectedPeriod = bucket.period }
                 }
             } label: {
-                Text(selectedPeriod ?? "Entire selected range")
+                Text(selectedPeriod.map { UsageDisplayDate.period($0, scale: model.usageScale) } ?? "Entire selected range")
             }
             .accessibilityLabel("Inspect usage period")
         }.frame(maxWidth: .infinity, alignment: .leading)
@@ -188,7 +217,7 @@ struct UnifiedUsageHistoryView: View {
         let total = selected?.total ?? history.total
         let visibleCount = showAllBreakdown ? rows.count : min(rows.count, 6)
         return VStack(alignment: .leading, spacing: 10) {
-            Text(selected?.period ?? "SELECTED RANGE")
+            Text(selected.map { UsageDisplayDate.period($0.period, scale: model.usageScale) } ?? "SELECTED RANGE")
                 .font(.caption2.weight(.semibold)).foregroundStyle(DaddyTheme.muted)
             Text(format(total)).font(.title2.bold()).monospacedDigit()
             ForEach(0..<visibleCount, id: \.self) { index in
@@ -209,7 +238,12 @@ struct UnifiedUsageHistoryView: View {
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func toggle(_ agent: String, among agents: [String]) {
+    private func select(_ agent: String, among agents: [String]) {
+        if model.usageHistorySource == .devin {
+            model.usageHistorySource = .agentLogs
+            model.usageHistoryAgents = [agent]
+            return
+        }
         let all = Set(agents)
         var chosen = model.usageHistoryAgents.isEmpty ? all : model.usageHistoryAgents
         if chosen.contains(agent) { chosen.remove(agent) } else { chosen.insert(agent) }

@@ -104,7 +104,7 @@ struct UsageAllowanceView: View {
                         .font(.caption2).foregroundStyle(DaddyTheme.amber)
                 }
                 if let status {
-                    Text("\(status.source) · \(status.checkedAt)")
+                    Text("\(status.source) · checked \(UsageDisplayDate.timestamp(status.checkedAt))")
                         .font(.caption2).foregroundStyle(DaddyTheme.muted).lineLimit(1)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)

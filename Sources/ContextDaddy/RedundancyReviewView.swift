@@ -10,31 +10,40 @@ struct RedundancyReviewView: View {
     var body: some View {
         @Bindable var model = model
         VStack(alignment: .leading, spacing: 14) {
-            truthBanner
-            EfficiencyOpportunityPanel(
-                title: "Recommended skill reviews",
-                sourceNote: "Ranked by conflict evidence and affected agents; no automatic changes.",
-                opportunities: EfficiencyOpportunityAnalyzer.skills(
-                    summary: model.redundancySummary, runtime: model.redundancyAgentFilter.runtime,
-                    telemetry: model.telemetry),
-                maxVisible: compact ? 1 : 3,
-                columnCount: compact ? 1 : 3,
-                copyCount: model.redundancySummary?.actionableFindings.count,
-                onCopyAll: copySkillIssues)
-            if model.skillIssueBaseline != nil { verificationPanel }
-            if compact { compactSummary } else { summaryCards }
-            controls
-            LazyVStack(spacing: 8) {
-                ForEach(model.visibleRedundancyFindings) { finding in
-                    RedundancyFindingRow(finding: finding)
-                }
-                if model.visibleRedundancyFindings.isEmpty {
-                    ContentUnavailableView(
-                        "No matching consolidation candidates",
-                        systemImage: "checkmark.seal",
-                        description: Text(model.isLoading ? "Scanning bounded local skill files…" : "Change the evidence, agent, or search filter.")
-                    )
-                    .padding(.top, 40)
+            ContextModeToggle(
+                title: "Cleanup focus", selection: $model.cleanupFocus,
+                choices: SkillCleanupFocus.allCases.map { ContextChoice($0, $0.rawValue) }
+            )
+            .frame(width: 330)
+            if model.cleanupFocus == .sharedGlobal {
+                SharedGlobalSkillsView()
+            } else {
+                truthBanner
+                EfficiencyOpportunityPanel(
+                    title: "Recommended skill reviews",
+                    sourceNote: "Ranked by conflict evidence and affected agents; no automatic changes.",
+                    opportunities: EfficiencyOpportunityAnalyzer.skills(
+                        summary: model.redundancySummary, runtime: model.redundancyAgentFilter.runtime,
+                        telemetry: model.telemetry),
+                    maxVisible: compact ? 1 : 3,
+                    columnCount: compact ? 1 : 3,
+                    copyCount: model.redundancySummary?.actionableFindings.count,
+                    onCopyAll: copySkillIssues)
+                if model.skillIssueBaseline != nil { verificationPanel }
+                if compact { compactSummary } else { summaryCards }
+                controls
+                LazyVStack(spacing: 8) {
+                    ForEach(model.visibleRedundancyFindings) { finding in
+                        RedundancyFindingRow(finding: finding)
+                    }
+                    if model.visibleRedundancyFindings.isEmpty {
+                        ContentUnavailableView(
+                            "No matching consolidation candidates",
+                            systemImage: "checkmark.seal",
+                            description: Text(model.isLoading ? "Scanning bounded local skill files…" : "Change the evidence, agent, or search filter.")
+                        )
+                        .padding(.top, 40)
+                    }
                 }
             }
         }
@@ -132,8 +141,8 @@ struct RedundancyReviewView: View {
             Image(systemName: "scope").foregroundStyle(DaddyTheme.mint).font(.title3)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Evidence, not an auto-cleaner").font(.subheadline.weight(.semibold))
-                Text("Exact copies use bounded SHA-256. Drift uses same-name conflicts. Purpose overlap is a local heuristic. Missing activation telemetry never means unused, and estimated savings are file bytes—not context tokens.")
-                    .font(.caption).foregroundStyle(DaddyTheme.muted).lineLimit(compact ? 2 : nil).fixedSize(horizontal: false, vertical: !compact)
+                Text("The Shared global view groups links to one physical file. This view compares separate SKILL.md files: exact matches use bounded SHA-256, drift uses same-name conflicts, and purpose overlap is a heuristic. Supporting files are not compared. Missing activation telemetry never means unused; savings are file bytes, not context tokens.")
+                    .font(.caption).foregroundStyle(DaddyTheme.muted).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -291,6 +300,11 @@ private struct RedundancyFindingRow: View {
                     Divider().overlay(DaddyTheme.line)
                     evidenceSection
                     membersSection
+                    Button("Copy this cleanup brief", systemImage: "doc.on.doc") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(IssueBriefFormatter.skills([finding]), forType: .string)
+                    }
+                    .font(.caption).foregroundStyle(DaddyTheme.mint)
                     Label("ContextDaddy never deletes or rewrites skill files.", systemImage: "lock.shield")
                         .font(.caption2).foregroundStyle(DaddyTheme.mint)
                 }

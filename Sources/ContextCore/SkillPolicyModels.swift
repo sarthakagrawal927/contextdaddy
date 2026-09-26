@@ -101,6 +101,21 @@ public struct SkillRecord: Identifiable, Codable, Sendable, Equatable {
     public var automaticCount: Int { policies.filter { $0.mode == .automatic }.count }
     public var exposedRuntimes: [AgentRuntime] { policies.filter(\.isExposed).map(\.runtime) }
     public var hasDefinitionConflict: Bool { definitionConflictCount > 1 }
+    public var activeExposures: [SkillExposure] { exposures.filter { $0.applicability != .installedOnly } }
+    public var globalExposures: [SkillExposure] { activeExposures.filter { $0.scope == .global } }
+    public var activePathCount: Int { Set(activeExposures.map(\.logicalPath)).count }
+    public var globalRuntimes: [AgentRuntime] {
+        Set(globalExposures.compactMap { exposure -> AgentRuntime? in
+            switch exposure.provider {
+            case .codex, .agents: .codex
+            case .claude: .claude
+            case .cursor: .cursor
+            case .devin: .devin
+            case .grok: .grok
+            case .gemini, .project: nil
+            }
+        }).sorted { $0.rawValue < $1.rawValue }
+    }
 
     public func policy(for runtime: AgentRuntime) -> SkillRuntimePolicy? {
         policies.first { $0.runtime == runtime }
@@ -109,6 +124,30 @@ public struct SkillRecord: Identifiable, Codable, Sendable, Equatable {
     public func needsReview(for runtime: AgentRuntime) -> Bool {
         guard let policy = policy(for: runtime) else { return true }
         return hasDefinitionConflict || policy.mode == .unverified || !policy.explicit
+    }
+}
+
+/// Placement is about one physical definition and its logical routes. A link
+/// to the same SKILL.md is not a second copy and cannot save file bytes.
+public struct SkillPlacementSummary: Sendable, Equatable {
+    public let globalCount: Int
+    public let crossAgentCount: Int
+    public let multiPathCount: Int
+    public let sharedGlobalRecords: [SkillRecord]
+
+    public init(records: [SkillRecord]) {
+        let global = records.filter { !$0.globalExposures.isEmpty }
+        globalCount = global.count
+        crossAgentCount = global.filter { $0.globalRuntimes.count > 1 }.count
+        multiPathCount = global.filter { $0.activePathCount > 1 }.count
+        sharedGlobalRecords = global.filter { $0.globalRuntimes.count > 1 || $0.activePathCount > 1 }
+            .sorted {
+                if $0.globalRuntimes.count != $1.globalRuntimes.count {
+                    return $0.globalRuntimes.count > $1.globalRuntimes.count
+                }
+                if $0.activePathCount != $1.activePathCount { return $0.activePathCount > $1.activePathCount }
+                return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+            }
     }
 }
 
@@ -169,4 +208,5 @@ public struct SkillCatalogSnapshot: Sendable, Equatable {
     }
 
     public var sharing: SkillSharingSummary { SkillSharingSummary(records: records) }
+    public var placement: SkillPlacementSummary { SkillPlacementSummary(records: records) }
 }

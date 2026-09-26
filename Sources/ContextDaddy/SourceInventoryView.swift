@@ -40,11 +40,12 @@ struct SourceInventoryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
             ScreenHeader(
-                eyebrow: "Raw evidence",
-                title: "Where context definitions live",
-                subtitle: "These are discovery groups, not separate skill stores. One physical file can have several agent exposures.",
+                eyebrow: "Files found on this Mac",
+                title: "Which files were found?",
+                subtitle: "This is the read-only file inventory. Open a source to see paths; a shared file can appear under several agents.",
                 art: .sources
             )
+            FilesScanAnswerView()
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 10) {
                     sourceSearch
@@ -82,13 +83,13 @@ struct SourceInventoryView: View {
                                         Image(systemName: "shippingbox.fill").foregroundStyle(DaddyTheme.blue)
                                         Text(group.source).font(.headline)
                                         Spacer()
-                                        Text("\(group.items.count.formatted()) exposures").font(.caption).foregroundStyle(DaddyTheme.muted)
+                                        Text("\(group.items.count.formatted()) \(group.items.count == 1 ? "entry" : "entries")").font(.caption).foregroundStyle(DaddyTheme.muted)
                                         Text(ByteCountFormatter.string(fromByteCount: group.logicalBytes, countStyle: .file))
                                             .font(.caption.monospacedDigit()).foregroundStyle(DaddyTheme.muted)
                                     }.contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel("\(group.source), \(group.items.count) exposures")
+                                .accessibilityLabel("\(group.source), \(group.items.count) \(group.items.count == 1 ? "entry" : "entries")")
                                 .accessibilityValue(expandedSource == group.id ? "Expanded" : "Collapsed")
                                 if expandedSource == group.id {
                                     Divider().overlay(DaddyTheme.line).padding(.top, 12)
@@ -171,7 +172,7 @@ struct SourceInventoryView: View {
     }
 
     private var inventoryCount: some View {
-        Text("\(filteredItems.count.formatted()) exposures · \(uniquePhysicalDocuments.formatted()) physical files · \(groups.count.formatted()) source groups")
+        Text("\(filteredItems.count.formatted()) file entries · \(uniquePhysicalDocuments.formatted()) unique files · \(groups.count.formatted()) sources")
             .font(.caption).foregroundStyle(DaddyTheme.muted)
             .fixedSize(horizontal: false, vertical: true)
             .help("Physical-file counts collapse resolved links. Cached versions remain separate.")

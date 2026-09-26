@@ -35,6 +35,7 @@ The primary user is a developer running Codex, Claude, Cursor, Devin, or Grok on
 - OTEL is directly reachable and reports a disconnected local source as unavailable, never as zero activity.
 - Overlapping operation durations are never added together as wall time.
 - Local and read-only is the default boundary.
+- Sharing a skill is an explicit exception: preview the source and agent destination, then create one directory link only when the destination is empty. Never replace or delete a skill definition or write agent configuration.
 - Unknown or unsupported data remains visible as unavailable.
 - Ignored agent settings and enabled MCP launchers that cannot resolve are surfaced once per root cause with file/line evidence and read-only remediation.
 

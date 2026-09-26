@@ -32,6 +32,26 @@ struct DesignSnapshotTests {
         let diagnosticsRanges = scrollRanges(for: AnyView(SourcesHubView().environment(model)))
         #expect(diagnosticsRanges.count == 1, "Sources diagnostics should have one vertical scroll surface; found \(diagnosticsRanges)")
         #expect(diagnosticsRanges.contains { $0 > 100 }, "Sources diagnostics needs a real scroll range; found \(diagnosticsRanges)")
+        let expandedUsageRanges = scrollRanges(for: AnyView(FocusDeskView(initiallyShowsDiagnostics: true).environment(model)))
+        #expect(expandedUsageRanges.count == 1, "Expanded Usage should have one vertical scroll surface; found \(expandedUsageRanges)")
+        #expect(expandedUsageRanges.contains { $0 > 100 }, "Expanded Usage needs a real scroll range; found \(expandedUsageRanges)")
+        #expect((expandedUsageRanges.first ?? 0) > (scrollRanges(for: AnyView(LiveRunsView().environment(model))).first ?? 0) + 300,
+                "Opening Usage diagnostics should increase the scroll range")
+
+        let root = NSHostingView(rootView: RootView().environment(model).frame(width: 960, height: 640))
+        root.frame = NSRect(x: 0, y: 0, width: 960, height: 640)
+        let window = NSWindow(contentRect: root.frame, styleMask: [], backing: .buffered, defer: false)
+        window.contentView = root
+        root.layoutSubtreeIfNeeded()
+        window.displayIfNeeded()
+        try await Task.sleep(for: .milliseconds(250))
+        root.layoutSubtreeIfNeeded()
+        let rootScroll = try #require(scrollViews(in: root).first)
+        let contentHeight = try #require(window.contentView).bounds.height
+        #expect(rootScroll.contentView.bounds.height < contentHeight - 40,
+                "Usage must scroll within the visible detail pane, below its chrome row")
+        #expect(rootScroll.contentView.bounds.height > contentHeight - 140,
+                "Usage should still occupy the detail pane rather than collapse to a smaller viewport")
     }
 
     @Test func writesResponsiveDesignEvidence() async throws {
@@ -62,6 +82,12 @@ struct DesignSnapshotTests {
                 to: directory.appendingPathComponent("after-\(width).png")
             )
         }
+        try render(AnyView(LiveRunsView().environment(model)), width: 960, height: 640,
+                   to: directory.appendingPathComponent("after-usage-bottom-960x640.png"), scrollToBottom: true)
+        try render(AnyView(FocusDeskView(initiallyShowsDiagnostics: true).environment(model)), width: 960, height: 640,
+                   to: directory.appendingPathComponent("after-usage-diagnostics-bottom-960x640.png"), scrollToBottom: true)
+        try render(AnyView(FocusDeskView(initiallyShowsDiagnostics: true).environment(model)), width: 1700, height: 1000,
+                   to: directory.appendingPathComponent("after-usage-diagnostics-bottom-1700x1000.png"), scrollToBottom: true)
 
         let quotaFixture = #"{"schema_version":"contextdaddy.provider-quota/v1","generated_at":"2026-09-23T12:00:00Z","providers":[{"provider":"codex","status":"ready","source":"Codex fixture","checked_at":"2026-09-23T12:00:00Z","plan":"pro","windows":[{"id":"codex.primary","label":"5-hour window","remaining_percent":70}],"reset_credits":2,"latest_reported_reset_credit_expiry_unix":1800000000,"reset_credit_details_count":1,"message":null}]}"#
         model.quotaReceipts["codex"] = try JSONDecoder().decode(ProviderQuotaReceipt.self, from: Data(quotaFixture.utf8))
@@ -101,6 +127,29 @@ struct DesignSnapshotTests {
                 )
             }
         }
+        if let folder = model.projects.max(by: { left, right in
+            let leftBytes = AIContextProjectCatalog.agentLoads(in: left.path, rankings: model.folderRankings)
+                .map(\.instructionBytes).max() ?? 0
+            let rightBytes = AIContextProjectCatalog.agentLoads(in: right.path, rankings: model.folderRankings)
+                .map(\.instructionBytes).max() ?? 0
+            return leftBytes < rightBytes
+        }) {
+            try render(AnyView(ProjectsContextView(initiallySelectedProjectID: folder.id).environment(model)),
+                       width: 1040, height: 900,
+                       to: directory.appendingPathComponent("after-folder-context-detail-1040.png"))
+        }
+        if let shareable = model.catalog?.records.first(where: { !$0.activeExposures.isEmpty }) {
+            try render(AnyView(SkillShareSheet(record: shareable).environment(model)),
+                       width: 720, height: 600,
+                       to: directory.appendingPathComponent("after-skill-share-preview-720.png"))
+        }
+        model.sourcesMode = .diagnostics
+        for width in [720, 1040, 1440] {
+            try render(AnyView(SourcesHubView().environment(model)), width: width,
+                       height: width == 720 ? 680 : 900,
+                       to: directory.appendingPathComponent("after-diagnostics-\(width).png"))
+        }
+        model.sourcesMode = .inventory
         try render(AnyView(ProjectsContextView().environment(model)), width: 1440, height: 900,
                    to: directory.appendingPathComponent("after-projects-pagination-1440.png"), scrollToBottom: true)
 
@@ -112,6 +161,15 @@ struct DesignSnapshotTests {
                 height: width == 720 ? 680 : 900,
                 to: directory.appendingPathComponent("after-redundancy-\(width).png")
             )
+        }
+        try render(AnyView(SharedGlobalSkillsView(initiallyExpandsFirst: true).environment(model)),
+                   width: 720, height: 900,
+                   to: directory.appendingPathComponent("after-cleanup-shared-detail-720.png"))
+        model.cleanupFocus = .separateFiles
+        for width in [720, 1040, 1440] {
+            try render(AnyView(SkillsLedgerView().environment(model)), width: width,
+                       height: width == 720 ? 680 : 900,
+                       to: directory.appendingPathComponent("after-cleanup-separate-\(width).png"))
         }
         model.captureSkillIssues()
         try render(AnyView(SkillsLedgerView().environment(model)), width: 1440, height: 900,
@@ -216,18 +274,18 @@ struct DesignSnapshotTests {
         window.contentView = hosting
         hosting.layoutSubtreeIfNeeded()
         window.displayIfNeeded()
-        if scrollToBottom, let scroll = scrollViews(in: hosting).first,
-           let document = scroll.documentView {
-            scroll.contentView.scroll(to: NSPoint(x: 0, y: max(0, document.bounds.height - scroll.contentView.bounds.height)))
-            scroll.reflectScrolledClipView(scroll.contentView)
-            hosting.layoutSubtreeIfNeeded()
-            window.displayIfNeeded()
-        }
         // Give NavigationSplitView's asynchronous first paint time to settle;
         // otherwise evidence images can omit the sidebar brand and rows.
         RunLoop.current.run(until: Date().addingTimeInterval(0.25))
         hosting.layoutSubtreeIfNeeded()
         window.displayIfNeeded()
+        if let scroll = scrollViews(in: hosting).first, let document = scroll.documentView {
+            let targetY = scrollToBottom ? max(0, document.bounds.height - scroll.contentView.bounds.height) : 0
+            scroll.contentView.scroll(to: NSPoint(x: 0, y: targetY))
+            scroll.reflectScrolledClipView(scroll.contentView)
+            hosting.layoutSubtreeIfNeeded()
+            window.displayIfNeeded()
+        }
         let bitmap = try #require(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
         hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
         let png = try #require(bitmap.representation(using: .png, properties: [:]))
