@@ -48,19 +48,23 @@ struct SkillLibraryView: View {
 
     var body: some View {
         GeometryReader { geometry in
+            // Legacy scrollers reserve layout space; overlay scrollers do not.
+            let scrollbarWidth = NSScroller.preferredScrollerStyle == .legacy
+                ? NSScroller.scrollerWidth(for: .regular, scrollerStyle: .legacy) : 0
+            let contentWidth = max(0, geometry.size.width - scrollbarWidth)
             ScrollViewReader { scroll in
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     header
                     summary
-                    if showsGuide && geometry.size.width >= 1180 {
+                    if showsGuide && contentWidth >= 1180 {
                         HStack(alignment: .top, spacing: 20) {
-                            workspace(width: geometry.size.width - 344, scroll: scroll)
+                            workspace(width: contentWidth - 344, scroll: scroll)
                             guide(scroll: scroll).frame(width: 280)
                         }
                     } else {
                         if showsGuide { guide(scroll: scroll) }
-                        workspace(width: geometry.size.width - 44, scroll: scroll)
+                        workspace(width: contentWidth - 44, scroll: scroll)
                     }
                 }
                 .padding(22)
@@ -71,7 +75,7 @@ struct SkillLibraryView: View {
             .onChange(of: selectedID) { _, value in
                 if value != nil {
                     if showsGuide && guideStep == 0 { guideStep = 1 }
-                    let availableWidth = geometry.size.width - (showsGuide && geometry.size.width >= 1180 ? 344 : 44)
+                    let availableWidth = contentWidth - (showsGuide && contentWidth >= 1180 ? 344 : 44)
                     scroll.scrollTo(availableWidth < 850 ? "skill-inspector" : "skill-columns", anchor: .top)
                 }
             }

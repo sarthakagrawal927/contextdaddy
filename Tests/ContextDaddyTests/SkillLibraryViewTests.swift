@@ -5,8 +5,19 @@ import Testing
 @testable import ContextDaddy
 
 @MainActor
+@Suite(.serialized)
 struct SkillLibraryViewTests {
     @Test func rendersLibraryAtSupportedWidthsWithoutLiveData() throws {
+        // AppKit caches this preference per process. Run the suite separately for each style.
+        let scrollbarPreference = ProcessInfo.processInfo.environment["CONTEXTDADDY_TEST_SCROLLBARS"] ?? "Always"
+        let defaults = UserDefaults.standard
+        let previous = defaults.object(forKey: "AppleShowScrollBars")
+        defaults.set(scrollbarPreference, forKey: "AppleShowScrollBars")
+        defer {
+            if let previous { defaults.set(previous, forKey: "AppleShowScrollBars") }
+            else { defaults.removeObject(forKey: "AppleShowScrollBars") }
+        }
+        #expect(NSScroller.preferredScrollerStyle == (scrollbarPreference == "Always" ? .legacy : .overlay))
         let model = ContextDaddyModel()
         let records = [
             record("design-workflow", "Design and review Fleet product interfaces.", path: "/Users/demo/skills/design-workflow/SKILL.md", providers: [.codex, .claude]),
