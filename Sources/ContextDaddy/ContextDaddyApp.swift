@@ -12,6 +12,7 @@ struct ContextDaddyApp: App {
                 .environment(model)
                 .preferredColorScheme(.dark)
                 .frame(minWidth: 960, minHeight: 640)
+                .onAppear { appDelegate.activeWork = { model.isLoading ? "A local context refresh is still running." : nil } }
         }
         .defaultSize(width: 1180, height: 740)
         .defaultPosition(.center)
@@ -26,6 +27,7 @@ struct ContextDaddyApp: App {
 
 @MainActor
 final class ContextDaddyAppDelegate: NSObject, NSApplicationDelegate {
+    var activeWork: (() -> String?)?
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApplication.shared.applicationIconImage = ContextDoodleArt.appIcon()
         DispatchQueue.main.async {
@@ -47,13 +49,19 @@ final class ContextDaddyAppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.applicationIconImage = ContextDoodleArt.appIcon()
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        DaddyQuitReview.shouldQuit(appName: "ContextDaddy", activeWork: activeWork?()) ? .terminateNow : .terminateCancel
+    }
 }
 
 private struct ContextMenu: View {
     let model: ContextDaddyModel
 
     var body: some View {
-        Text(model.isLoading ? "Refreshing local context…" : "Ready for local review")
+        DaddyMenuStatus(message: model.isLoading ? "Refreshing local context…" : model.lastError != nil ? "Last refresh needs attention" : "Ready for local review")
+        if let lastRefresh = model.lastSuccessfulRefreshAt {
+            Text("Last refresh: \(lastRefresh.formatted(date: .abbreviated, time: .shortened))")
+        }
         Divider()
         DaddyMenuOpenButton(appName: "ContextDaddy")
         Button("Refresh Local Context") { Task { await model.refresh() } }

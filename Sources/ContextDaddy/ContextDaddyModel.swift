@@ -142,6 +142,7 @@ final class ContextDaddyModel {
     var redundancyAgentFilter: RedundancyAgentFilter = .all
     var selectedRuntime: AgentRuntime = .codex
     var isLoading = false
+    var lastSuccessfulRefreshAt: Date?
     var loadStarted = Date()
     var discoveryStatus = "Not scanned yet"
     var lastError: String?
@@ -312,6 +313,7 @@ final class ContextDaddyModel {
             discoveryReport = loaded.0
             catalog = loaded.1
             projects = loaded.2
+            lastSuccessfulRefreshAt = Date()
             discoveryStatus = "\(loaded.2.count.formatted()) projects · \(loaded.0.items.count.formatted()) file locations · \(String(format: "%.1f", loaded.0.elapsed)) s"
         } catch {
             guard refreshGeneration == request else { return }

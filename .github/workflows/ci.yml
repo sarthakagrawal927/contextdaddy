@@ -22,10 +22,10 @@ jobs:
       - run: swift build -c release
 
   shared_candidate:
-    uses: sass-maker/saas-maker/.github/workflows/daddy-macos-candidate.yml@f72dd4076b534303ec70e15f2f1019a7f2297932
+    uses: sass-maker/saas-maker/.github/workflows/daddy-macos-candidate.yml@06c96cbcf95c7ac6d7f0a09df045ef1700d9369a
     with:
       app: contextdaddy
-      tooling-ref: f72dd4076b534303ec70e15f2f1019a7f2297932
+      tooling-ref: 06c96cbcf95c7ac6d7f0a09df045ef1700d9369a
 
   site:
     runs-on: ubuntu-latest
