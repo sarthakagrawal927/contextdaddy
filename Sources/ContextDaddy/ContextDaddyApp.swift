@@ -15,7 +15,7 @@ struct ContextDaddyApp: App {
         }
         .defaultSize(width: 1180, height: 740)
         .defaultPosition(.center)
-        .windowStyle(.hiddenTitleBar)
+        .windowStyle(.titleBar)
     }
 }
 

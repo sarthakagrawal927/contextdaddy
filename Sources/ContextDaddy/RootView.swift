@@ -7,13 +7,12 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var model = model
-        NavigationSplitView {
+        GeometryReader { viewport in
+        HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 BrandMark()
                     .padding(.horizontal, 18)
-                    // Hidden-titlebar windows place traffic-light controls over
-                    // the sidebar's top edge. Reserve that row for window chrome.
-                    .padding(.top, 80)
+                    .padding(.top, 18)
                     .padding(.bottom, 14)
                 VStack(spacing: 5) {
                     ForEach(AppSection.allCases) { section in
@@ -80,13 +79,9 @@ struct RootView: View {
             .safeAreaPadding(.top, 18)
             .frame(maxHeight: .infinity, alignment: .top)
             .background(DaddyTheme.canvas)
-            .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
-        } detail: {
+            .frame(width: 240)
+            Rectangle().fill(DaddyTheme.line).frame(width: 1)
             VStack(spacing: 0) {
-                // A dedicated chrome row reduces the height offered to each
-                // destination. Padding around a full-height GeometryReader
-                // instead pushed bottom controls below the window edge.
-                Color.clear.frame(height: 64)
                 Group {
                     if model.evidenceOpen {
                         SourcesHubView()
@@ -104,7 +99,8 @@ struct RootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(DaddyTheme.canvas)
         }
-        .navigationSplitViewStyle(.balanced)
+        .frame(width: viewport.size.width, height: viewport.size.height)
+        }
         .task { await model.refresh() }
         .preferredColorScheme(.dark)
         .tint(DaddyTheme.mint)

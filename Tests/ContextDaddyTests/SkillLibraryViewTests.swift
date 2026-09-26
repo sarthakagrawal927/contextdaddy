@@ -30,10 +30,42 @@ struct SkillLibraryViewTests {
             let scrolls = scrollViews(hosting)
             #expect(scrolls.count == 1)
             #expect(scrolls.first?.hasVerticalScroller == true)
+            let scroll = try #require(scrolls.first)
+            #expect(scroll.frame.height <= hosting.bounds.height + 1)
+            #expect(scroll.frame.width <= hosting.bounds.width + 1)
+            let document = try #require(scroll.documentView)
+            if document.bounds.height > scroll.contentView.bounds.height {
+                let bottom = max(0, document.bounds.height - scroll.contentView.bounds.height)
+                scroll.contentView.scroll(to: NSPoint(x: 0, y: bottom))
+                scroll.reflectScrolledClipView(scroll.contentView)
+                #expect(abs(scroll.contentView.bounds.maxY - document.bounds.maxY) < 2)
+                scroll.contentView.scroll(to: .zero)
+                scroll.reflectScrolledClipView(scroll.contentView)
+            }
             let bitmap = try #require(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
             hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
             let png = try #require(bitmap.representation(using: .png, properties: [:]))
             try png.write(to: directory.appendingPathComponent("library-\(width).png"))
+        }
+    }
+
+    @Test func rootKeepsSkillsInsideTheActualWindow() throws {
+        let model = ContextDaddyModel(discover: { _ in throw CancellationError() })
+        model.show(.skills)
+        for width in [960, 1180, 1440] {
+            let host = NSHostingView(rootView: RootView().environment(model))
+            host.frame = NSRect(x: 0, y: 0, width: width, height: 640)
+            let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
+            window.contentView = host
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+            host.layoutSubtreeIfNeeded(); window.displayIfNeeded()
+            let scroll = try #require(scrollViews(host).first)
+            let viewport = scroll.convert(scroll.bounds, to: host)
+            #expect(viewport.minX >= -1)
+            #expect(viewport.minY >= -1)
+            #expect(viewport.maxX <= host.bounds.maxX + 1)
+            #expect(viewport.maxY <= host.bounds.maxY + 1)
+            #expect(viewport.height > 400)
         }
     }
 

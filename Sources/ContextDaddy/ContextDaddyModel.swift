@@ -32,12 +32,6 @@ enum SourcesMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum LocalHistorySource: String, CaseIterable, Identifiable {
-    case agentLogs = "Agent logs"
-    case devin = "Devin index"
-    var id: String { rawValue }
-}
-
 enum SkillFilter: String, CaseIterable, Identifiable {
     case all = "All"
     case automatic = "Automatic"
@@ -117,21 +111,9 @@ final class ContextDaddyModel {
     }
     var usageModel: String?
     var usageScale: UsageChartScale = .day
-    var usageMetric: UsageChartMetric = .generated {
-        didSet { if usageHistorySource == .devin && usageMetric == .estimatedCost { usageMetric = .generated } }
-    }
-    var usageHistoryGrouping: UsageHistoryGrouping = .model {
-        didSet { if usageHistorySource == .devin && usageHistoryGrouping == .project { usageHistoryGrouping = .model } }
-    }
+    var usageMetric: UsageChartMetric = .generated
+    var usageHistoryGrouping: UsageHistoryGrouping = .model
     var usageHistoryAgents: Set<String> = []
-    var usageHistorySource: LocalHistorySource = .agentLogs {
-        didSet {
-            if usageHistorySource == .devin {
-                if usageHistoryGrouping == .project { usageHistoryGrouping = .model }
-                if usageMetric == .estimatedCost { usageMetric = .generated }
-            }
-        }
-    }
     var configurationHealth: ConfigurationHealthReport = .empty
     var configurationIssueBaseline: ConfigurationIssueBaseline?
     var configurationIssueVerification: ConfigurationIssueVerification?
@@ -189,13 +171,38 @@ final class ContextDaddyModel {
         quotaReceipts[key]?.providers.first { $0.provider == key }
             ?? quotaReceipt?.providers.first { $0.provider == key }
     }
+    var availableHistoryAgents: [String] {
+        guard let usageReport else { return ["devin"] }
+        return Set((usageReport.provenance.detectedAgents ?? [])
+                   + usageReport.daily.flatMap { $0.agents.map(\.agent) }
+                   + ["devin"]).sorted()
+    }
+
+    var historySourceNotice: String {
+        var messages: [String] = []
+        if let usageError { messages.append("Agent logs: \(usageError)") }
+        if usageHistoryAgents.isEmpty || usageHistoryAgents.contains("devin") {
+            if isDevinLoading {
+                messages.append("Reading Devin history…")
+            } else if let devin = usageReport?.devin, ["ready", "empty"].contains(devin.status) {
+                if usageHistoryGrouping == .project {
+                    messages.append("Devin project attribution unavailable; Devin is excluded from this session-project view.")
+                } else if usageMetric == .estimatedCost {
+                    messages.append("Devin cost unavailable; estimated costs exclude Devin.")
+                } else if devin.daily == nil {
+                    messages.append("Devin daily history unavailable; indexed window totals cannot be allocated to chart dates.")
+                } else {
+                    messages.append("Includes Devin’s deduplicated local session index alongside agent logs.")
+                }
+            } else {
+                messages.append("Devin history unavailable. " + (usageReport?.devin?.limitations.joined(separator: " · ") ?? "No verified index was returned."))
+            }
+        }
+        return messages.joined(separator: " · ")
+    }
+
     var usageHistory: UsageHistoryProjection? {
         guard let usageReport else { return nil }
-        if usageHistorySource == .devin {
-            guard let devin = usageReport.devin, devin.status == "ready" || devin.status == "empty" else { return nil }
-            return UsageHistoryProjection(devin: devin, range: usageRange, scale: usageScale,
-                                          grouping: usageHistoryGrouping, metric: usageMetric)
-        }
         return UsageHistoryProjection(report: usageReport, agents: usageHistoryAgents,
                                       range: usageRange, scale: usageScale,
                                       grouping: usageHistoryGrouping, metric: usageMetric)
@@ -313,6 +320,20 @@ final class ContextDaddyModel {
         async let loadedConfigurationHealth = Task.detached(priority: .utility) {
             AgentConfigurationAuditor.audit()
         }.value
+        do {
+            let loaded = try await loadedContext
+            guard refreshGeneration == request else { return }
+            discoveryReport = loaded.0
+            catalog = loaded.1
+            projects = loaded.2
+            discoveryStatus = "\(loaded.2.count.formatted()) projects · \(loaded.0.items.count.formatted()) file locations · \(String(format: "%.1f", loaded.0.elapsed)) s"
+        } catch {
+            guard refreshGeneration == request else { return }
+            lastError = error.localizedDescription
+            discoveryStatus = discoveryReport == nil ? "Discovery needs attention" : "Refresh failed · showing previous results"
+        }
+        // Publish local discovery before waiting for unrelated collector or config reads.
+        isLoading = false
         let nextTelemetry = await loadedTelemetry
         let nextConfigurationHealth = await loadedConfigurationHealth
         var nextHistory = await snapshotStore.load()
@@ -329,18 +350,7 @@ final class ContextDaddyModel {
                 lastError = "Telemetry was measured but could not be retained: \(error.localizedDescription)"
             }
         }
-        do {
-            let loaded = try await loadedContext
-            guard refreshGeneration == request else { return }
-            discoveryReport = loaded.0
-            catalog = loaded.1
-            projects = loaded.2
-            discoveryStatus = "\(loaded.2.count.formatted()) projects · \(loaded.0.items.count.formatted()) file locations · \(String(format: "%.1f", loaded.0.elapsed)) s"
-        } catch {
-            guard refreshGeneration == request else { return }
-            lastError = error.localizedDescription
-            discoveryStatus = discoveryReport == nil ? "Discovery needs attention" : "Refresh failed · showing previous results"
-        }
+
     }
 
     func refreshTelemetry() async {

@@ -12,7 +12,7 @@ struct UnifiedUsageHistoryView: View {
     var body: some View {
         @Bindable var model = model
         let history = model.usageHistory
-        let agents = model.usageReport?.provenance.detectedAgents ?? []
+        let agents = model.availableHistoryAgents
         return Panel(padding: 20) {
             VStack(alignment: .leading, spacing: 15) {
                 HStack(alignment: .top, spacing: 12) {
@@ -21,11 +21,9 @@ struct UnifiedUsageHistoryView: View {
                             .font(.system(size: 10, weight: .bold, design: .rounded))
                             .tracking(1).foregroundStyle(DaddyTheme.mint)
                         Text("Historical usage").font(.title3.weight(.semibold))
-                        Text(model.usageHistorySource == .devin
-                             ? "Devin's read-only session index · tokens only, kept separate from ccusage."
-                             : model.usageHistoryGrouping == .project
+                        Text(model.usageHistoryGrouping == .project
                              ? "Project identities from agent sessions · bucketed by last activity, separate from daily accounting."
-                             : "Generated tokens, cache reads, and estimated cost from local agent logs.")
+                             : "Local agent history, including Devin · generated tokens, cache reads, and available estimated costs.")
                             .font(.caption).foregroundStyle(DaddyTheme.muted)
                     }
                     Spacer(minLength: 0)
@@ -36,7 +34,7 @@ struct UnifiedUsageHistoryView: View {
 
                 controls
 
-                if model.usageHistorySource == .agentLogs, !agents.isEmpty {
+                if !agents.isEmpty {
                     HStack(spacing: 7) {
                         ForEach(agents, id: \.self) { agent in
                             let included = model.usageHistoryAgents.isEmpty || model.usageHistoryAgents.contains(agent)
@@ -72,12 +70,7 @@ struct UnifiedUsageHistoryView: View {
                             breakdown(history)
                         }
                     }
-                    if model.usageHistorySource == .devin {
-                        Text(model.usageHistoryGrouping == .provider
-                             ? "Devin model providers are inferred from model names; unknown aliases stay unknown. Devin is never added to ccusage totals."
-                             : "Devin history is indexed locally and never added to ccusage totals. Cost and project attribution are unavailable.")
-                            .font(.caption2).foregroundStyle(DaddyTheme.amber)
-                    } else if model.usageHistoryGrouping == .project {
+                    if model.usageHistoryGrouping == .project {
                         Text(history.unattributed > 0
                              ? "Session-project ledger: \(format(history.unattributed)) unattributed. Sessions are bucketed by last activity; these totals may not reconcile to daily usage."
                              : "Session-project ledger: project identities come from agent session reports. Buckets use last activity, so totals may not reconcile to daily usage.")
@@ -92,9 +85,13 @@ struct UnifiedUsageHistoryView: View {
                             .font(.caption2).foregroundStyle(DaddyTheme.amber)
                     }
                 } else {
-                    Text(model.usageError ?? "No local activity in this time range. The other Usage panels remain available.")
+                    Text("No available activity for these filters.")
                         .font(.caption).foregroundStyle(DaddyTheme.muted)
                         .frame(maxWidth: .infinity, minHeight: 130)
+                }
+                if !model.historySourceNotice.isEmpty {
+                    Text(model.historySourceNotice)
+                        .font(.caption2).foregroundStyle(DaddyTheme.amber)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -104,26 +101,21 @@ struct UnifiedUsageHistoryView: View {
         .onChange(of: model.usageRange) { selectedPeriod = nil }
         .onChange(of: model.usageScale) { selectedPeriod = nil }
         .onChange(of: model.usageHistoryAgents) { selectedPeriod = nil }
-        .onChange(of: model.usageHistorySource) { selectedPeriod = nil; showAllBreakdown = false }
     }
 
     private var controls: some View {
         @Bindable var model = model
         return LazyVGrid(columns: [GridItem(.adaptive(minimum: 170, maximum: 210), spacing: 7)],
                          alignment: .leading, spacing: 7) {
-            ContextChoiceMenu(title: "Source", selection: $model.usageHistorySource,
-                              choices: LocalHistorySource.allCases.map { ContextChoice($0, $0.rawValue) }, width: 190)
             ContextChoiceMenu(title: "Range", selection: $model.usageRange,
                               choices: UsageRange.allCases.map { ContextChoice($0, $0.title) }, width: 165)
             ContextChoiceMenu(title: "Scale", selection: $model.usageScale,
                               choices: UsageChartScale.allCases.map { ContextChoice($0, $0.rawValue) }, width: 165)
             ContextChoiceMenu(title: "Group", selection: $model.usageHistoryGrouping,
-                              choices: (model.usageHistorySource == .devin
-                                  ? [UsageHistoryGrouping.model, .provider] : UsageHistoryGrouping.allCases)
+                              choices: UsageHistoryGrouping.allCases
                                 .map { ContextChoice($0, $0.rawValue) }, width: 165)
             ContextChoiceMenu(title: "Metric", selection: $model.usageMetric,
-                              choices: (model.usageHistorySource == .devin
-                                  ? [UsageChartMetric.generated, .cacheRead] : UsageChartMetric.allCases)
+                              choices: UsageChartMetric.allCases
                                 .map { ContextChoice($0, $0.rawValue) }, width: 165)
         }
     }

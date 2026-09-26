@@ -96,7 +96,6 @@ struct TelemetryView: View {
                     .foregroundStyle(DaddyTheme.muted)
                     .fixedSize(horizontal: false, vertical: true)
                 Button("Open Usage history", systemImage: "chart.bar.xaxis") {
-                    model.usageHistorySource = .agentLogs
                     model.usageService = .claude
                     model.show(.overview)
                 }

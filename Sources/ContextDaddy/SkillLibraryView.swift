@@ -5,6 +5,11 @@ import SwiftUI
 struct SkillLibraryView: View {
     @Environment(ContextDaddyModel.self) private var model
     @State private var query = ""
+    @AppStorage("skillLibraryGuideCompleted") private var guideCompleted = false
+    @State private var guideOpen = false
+    @State private var guideStep = 0
+    @FocusState private var searchFocused: Bool
+    private var showsGuide: Bool { guideOpen || !guideCompleted }
     @State private var ownership: SkillOwnership?
     @State private var agent: AgentRuntime?
     @State private var location: String?
@@ -48,32 +53,27 @@ struct SkillLibraryView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     header
                     summary
-                    filters
-                    if let notice { Text(notice).font(.callout).foregroundStyle(DaddyTheme.mint).textSelection(.enabled) }
-                    if let error { Text(error).font(.callout).foregroundStyle(DaddyTheme.coral).textSelection(.enabled) }
-                    if model.lastError != nil { Text("Scan needs attention. Showing the last available library.").foregroundStyle(DaddyTheme.amber) }
-                    if results.isEmpty {
-                        ContentUnavailableView(model.isLoading ? "Scanning skill locations…" : "No matching skills", systemImage: "books.vertical",
-                            description: Text(records.isEmpty ? "Add a skill folder or search location to begin." : "Try another search, agent, or ownership filter."))
-                    } else if geometry.size.width >= 850 {
-                        HStack(alignment: .top, spacing: 16) {
-                            libraryList.frame(width: min(360, geometry.size.width * 0.35))
-                            if let selection { inspector(selection).frame(maxWidth: .infinity, alignment: .topLeading) }
+                    if showsGuide && geometry.size.width >= 1180 {
+                        HStack(alignment: .top, spacing: 20) {
+                            workspace(width: geometry.size.width - 344, scroll: scroll)
+                            guide(scroll: scroll).frame(width: 280)
                         }
                     } else {
-                        libraryList.id("skill-list")
-                        if let selection {
-                            Button("Back to skills") { scroll.scrollTo("skill-list", anchor: .top) }
-                                .buttonStyle(ContextDaddyButtonStyle()).id("skill-inspector")
-                            inspector(selection)
-                        }
+                        if showsGuide { guide(scroll: scroll) }
+                        workspace(width: geometry.size.width - 44, scroll: scroll)
                     }
                 }
                 .padding(22)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
             .onChange(of: selectedID) { _, value in
-                if value != nil && geometry.size.width < 850 { scroll.scrollTo("skill-inspector", anchor: .top) }
+                if value != nil {
+                    if showsGuide && guideStep == 0 { guideStep = 1 }
+                    let availableWidth = geometry.size.width - (showsGuide && geometry.size.width >= 1180 ? 344 : 44)
+                    scroll.scrollTo(availableWidth < 850 ? "skill-inspector" : "skill-columns", anchor: .top)
+                }
             }
             }
         }
@@ -114,13 +114,88 @@ struct SkillLibraryView: View {
         }
     }
 
+    private func workspace(width availableWidth: CGFloat, scroll: ScrollViewProxy) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+                    filters
+                    if let notice { Text(notice).font(.callout).foregroundStyle(DaddyTheme.mint).textSelection(.enabled) }
+                    if let error { Text(error).font(.callout).foregroundStyle(DaddyTheme.coral).textSelection(.enabled) }
+                    if model.lastError != nil { Text("Scan needs attention. Showing the last available library.").foregroundStyle(DaddyTheme.amber) }
+                    if results.isEmpty {
+                        ContentUnavailableView(model.isLoading ? "Scanning skill locations…" : "No matching skills", systemImage: "books.vertical",
+                            description: Text(records.isEmpty ? "Add a skill folder or search location to begin." : "Try another search, agent, or ownership filter."))
+                    } else if availableWidth >= 850 {
+                        HStack(alignment: .top, spacing: 16) {
+                            libraryList.frame(width: min(360, availableWidth * 0.35))
+                            if let selection { inspector(selection, scroll: scroll).frame(maxWidth: .infinity, alignment: .topLeading) }
+                        }.id("skill-columns")
+                    } else {
+                        libraryList.id("skill-list")
+                        if let selection {
+                            Button("Back to skills") { scroll.scrollTo("skill-list", anchor: .top) }
+                                .buttonStyle(ContextDaddyButtonStyle()).id("skill-inspector")
+                            inspector(selection, scroll: scroll)
+                        }
+                    }
+        }.frame(width: max(0, availableWidth), alignment: .leading)
+    }
+
+    private func guide(scroll: ScrollViewProxy) -> some View {
+        Panel(padding: 16) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("YOUR FIRST SKILL · \(guideStep + 1) OF 3")
+                        .font(.caption2.weight(.bold)).foregroundStyle(DaddyTheme.mint)
+                    Spacer()
+                    Button("Skip") { guideCompleted = true; guideOpen = false }
+                        .font(.caption).accessibilityLabel("Dismiss skill guide")
+                }
+                Text(["Find something you use", "See who can use it", "Know what you can change"][guideStep])
+                    .font(.title3.weight(.semibold))
+                Text([
+                    "Search a name or topic, then select a skill. One definition can appear in several locations through links. Browsing changes nothing.",
+                    "Open Access on the selected skill. It explains each agent’s discovery and invocation policy. An installed plugin is not necessarily enabled.",
+                    "Local skills can be edited or shared after a preview. Linked locations use the same definition. Plugin-managed skills are changed through their installer. History keeps recovery records for changes made here."
+                ][guideStep]).font(.callout).foregroundStyle(DaddyTheme.muted).fixedSize(horizontal: false, vertical: true)
+                if guideStep == 0 {
+                    Button("Find a skill") {
+                        searchFocused = true
+                        scroll.scrollTo("skill-search", anchor: .top)
+                    }
+                } else if guideStep == 1 {
+                    Button("Show agent access") {
+                        tab = "Access"
+                        scroll.scrollTo(selection?.id, anchor: .top)
+                    }.disabled(selection == nil)
+                } else {
+                    Button("Explore this skill") {
+                        tab = "Overview"
+                        guideCompleted = true; guideOpen = false
+                        scroll.scrollTo(selection?.id, anchor: .top)
+                    }.disabled(selection == nil)
+                }
+                HStack {
+                    if guideStep > 0 { Button("Back") { guideStep -= 1 } }
+                    Spacer()
+                    Button(guideStep == 2 ? "Finish guide" : "Next") {
+                        if guideStep == 2 { guideCompleted = true; guideOpen = false }
+                        else { guideStep += 1 }
+                    }
+                }.font(.caption)
+                Text("Reopen anytime with Guide.").font(.caption2).foregroundStyle(DaddyTheme.muted)
+            }
+        }
+        .id("skill-guide")
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Skill library guide")
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("YOUR SKILLS, ONE LIBRARY").font(.caption.weight(.semibold)).tracking(1.4).foregroundStyle(DaddyTheme.mint)
                     Text("Skills").font(.system(size: 34, weight: .bold, design: .rounded))
-                    Text("One source. Every location, agent, and control explained.").foregroundStyle(DaddyTheme.muted)
+                    Text("Search for a skill, then select it to see its instructions and which agents can use it.").foregroundStyle(DaddyTheme.muted)
                 }
                 Spacer()
                 ContextDoodleArt(topic: .skills).frame(width: 92, height: 72)
@@ -139,6 +214,7 @@ struct SkillLibraryView: View {
                 Button("Add search location…") { addLocation() }
             } label: { Label("Add skill", systemImage: "plus") }
             .menuStyle(.borderlessButton).fixedSize().padding(9).background(DaddyTheme.mint.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
+            Button("Guide") { guideOpen = true; guideStep = 0 }
             Button("Locations") { showLocations = true }
             Button("History") { Task { do { receipts = try await manager.history(); showHistory = true } catch { self.error = error.localizedDescription } } }
         }.buttonStyle(ContextDaddyButtonStyle()).disabled(working)
@@ -157,7 +233,7 @@ struct SkillLibraryView: View {
                     VStack(alignment: .leading, spacing: 6) { summaryFacts }
                 }
                 HStack {
-                    Text(model.catalog?.coverage.isPartial == true ? "Partial coverage · inspect Locations for limits" : "Bounded discovery · installed does not mean active")
+                    Text(model.catalog?.coverage.isPartial == true ? "Some folders could not be fully scanned. Open Locations to see what is missing." : "Locations include links to the same skill. Installed plugins may not be enabled.")
                         .font(.caption).foregroundStyle(model.catalog?.coverage.isPartial == true ? DaddyTheme.amber : DaddyTheme.muted)
                     Spacer()
                     Button(model.isLoading ? "Scanning…" : "Rescan") { Task { await model.refreshSkillLibrary() } }.disabled(model.isLoading)
@@ -166,14 +242,14 @@ struct SkillLibraryView: View {
         }
     }
     @ViewBuilder private var summaryFacts: some View {
-        Text("\(records.count) physical skills").fontWeight(.semibold)
-        Text("\(records.reduce(0) { $0 + $1.exposures.count }) locations").foregroundStyle(DaddyTheme.muted)
+        Text("\(records.count) skill definitions").fontWeight(.semibold)
+        Text("\(records.reduce(0) { $0 + $1.exposures.count }) agent locations").foregroundStyle(DaddyTheme.muted)
         Text("\(records.filter { $0.ownership == .plugin }.count) plugin managed").foregroundStyle(DaddyTheme.muted)
     }
     private var filters: some View {
         VStack(alignment: .leading, spacing: 10) {
             TextField("Search skills, agents, paths, descriptions, or tags", text: $query).textFieldStyle(.roundedBorder)
-                .accessibilityLabel("Search skill library")
+                .accessibilityLabel("Search skill library").focused($searchFocused).id("skill-search")
             ViewThatFits(in: .horizontal) {
                 HStack { filterMenus; Spacer(); favoritesButton }
                 VStack(alignment: .leading) { filterMenus; favoritesButton }
@@ -240,9 +316,13 @@ struct SkillLibraryView: View {
             }.buttonStyle(ContextDaddyButtonStyle())
         }
     }
-    private func inspector(_ skill: SkillRecord) -> some View {
+    private func inspector(_ skill: SkillRecord, scroll: ScrollViewProxy) -> some View {
         Panel {
             VStack(alignment: .leading, spacing: 16) {
+                if showsGuide {
+                    Button("Back to guide") { scroll.scrollTo("skill-guide", anchor: .top) }
+                        .font(.caption)
+                }
                 HStack(alignment: .top) {
                     Text(skill.name).font(.system(size: 24, weight: .semibold, design: .rounded)).textSelection(.enabled)
                     Spacer()

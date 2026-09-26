@@ -132,7 +132,7 @@ public struct DevinUsageClient: Sendable {
         }
         return DevinUsage(status: sawUsage ? "ready" : "empty", source: "Devin CLI sessions.db · read-only",
                           windows: windows, daily: daily, limitations: [
-                            "Devin is counted separately from ccusage and provider allowance.",
+                            "Devin tokens join local history; provider allowance remains a separate account reading.",
                             "Token metrics are deduplicated by message ID. Cost is unavailable without verified provider billing rates.",
                           ], costAvailable: false)
     }

@@ -74,7 +74,7 @@ struct LocalUsageTests {
         let report = try fixture()
         let all = UsageHistoryProjection(report: report, agents: [], range: .week, scale: .day,
                                          grouping: .model, metric: .generated, now: now)
-        #expect(all.total == 18) // Codex 14 + Claude 4; Devin remains separate.
+        #expect(all.total == 18) // Codex 14 + Claude 4; This legacy fixture has no Devin daily records.
         #expect(all.buckets.count == 1)
         #expect(all.series.first?.label == "gpt-a")
         #expect(all.unattributed == 4) // Claude's missing model breakdown.
@@ -115,7 +115,7 @@ struct LocalUsageTests {
         #expect(UsageService.devin.quotaKey == nil)
     }
 
-    @Test func devinDailyHistoryGroupsByModelProviderWithoutJoiningCcusage() throws {
+    @Test func devinDailyHistoryJoinsUnifiedTotalsAndRespectsFilters() throws {
         let json = Data(#"{"status":"ready","source":"fixture","windows":[],"daily":[{"period":"2026-09-20","sessions":2,"generated_tokens":30,"cache_read_tokens":5,"models":[{"model":"swe-2-high","sessions":1,"generated_tokens":20,"cache_read_tokens":3,"cost_usd":0},{"model":"glm-5-2","sessions":1,"generated_tokens":10,"cache_read_tokens":2,"cost_usd":0}]}],"limitations":[],"cost_available":false}"#.utf8)
         let devin = try JSONDecoder().decode(DevinUsage.self, from: json)
         let projection = UsageHistoryProjection(devin: devin, range: .week, scale: .day,
@@ -123,6 +123,50 @@ struct LocalUsageTests {
         #expect(projection.total == 30)
         #expect(projection.series.contains { $0.label == "Cognition" && $0.value == 20 })
         #expect(projection.series.contains { $0.label == "Z.ai" && $0.value == 10 })
+        let report = try fixture().withDevin(devin)
+        for scale in UsageChartScale.allCases {
+            let combined = UsageHistoryProjection(report: report, agents: [], range: .week, scale: scale,
+                                                   grouping: .provider, metric: .generated, now: now)
+            #expect(combined.total == 48)
+            #expect(combined.buckets.reduce(0) { $0 + $1.total } == 48)
+            #expect(combined.series.contains { $0.label == "Cognition" && $0.value == 20 })
+            #expect(combined.series.contains { $0.label == "OpenAI" && $0.value == 14 })
+        }
+        let excluded = UsageHistoryProjection(report: report, agents: ["codex", "claude"], range: .week,
+                                               scale: .day, grouping: .model, metric: .generated, now: now)
+        #expect(excluded.total == 18)
+        let cache = UsageHistoryProjection(report: report, agents: [], range: .week,
+                                           scale: .day, grouping: .model, metric: .cacheRead, now: now)
+        #expect(cache.total == 26)
+        let onlyDevin = UsageHistoryProjection(report: report, agents: ["devin"], range: .week,
+                                               scale: .day, grouping: .model, metric: .generated, now: now)
+        #expect(onlyDevin.total == 30)
+        let cost = UsageHistoryProjection(report: report, agents: [], range: .week,
+                                          scale: .day, grouping: .model, metric: .estimatedCost, now: now)
+        #expect(abs(cost.total - 0.03) < 0.000001)
+        let project = UsageHistoryProjection(report: report, agents: ["devin"], range: .week,
+                                             scale: .day, grouping: .project, metric: .generated, now: now)
+        #expect(project.buckets.isEmpty)
+        let independent = UsageHistoryProjection(report: LocalUsageReport.unavailable(message: "offline").withDevin(devin),
+                                                 agents: [], range: .week, scale: .day,
+                                                 grouping: .model, metric: .generated, now: now)
+        #expect(independent.total == 30)
+        let outside = UsageHistoryProjection(report: report, agents: ["devin"], range: .week,
+                                             scale: .day, grouping: .model, metric: .generated,
+                                             now: now.addingTimeInterval(30 * 86400))
+        #expect(outside.total == 0)
+        let incomplete = DevinUsage(status: "ready", source: "fixture", windows: [],
+            daily: [DevinUsageDay(period: "2026-09-20", sessions: 1, generatedTokens: 50,
+                                  cacheReadTokens: 1, models: devin.daily![0].models)], limitations: [], costAvailable: false)
+        let reconciled = UsageHistoryProjection(devin: incomplete, range: .week, scale: .day,
+                                               metric: .generated, now: now)
+        #expect(reconciled.total == 50)
+        #expect(reconciled.unattributed == 20)
+        let inconsistent = UsageHistoryProjection(devin: incomplete, range: .week, scale: .day,
+                                                  metric: .cacheRead, now: now)
+        #expect(inconsistent.total == 1)
+        #expect(inconsistent.unattributed == 1)
+
     }
 
     private func fixture(status: String = "ready") throws -> LocalUsageReport {

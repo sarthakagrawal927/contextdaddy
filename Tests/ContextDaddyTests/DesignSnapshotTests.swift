@@ -70,7 +70,7 @@ struct DesignSnapshotTests {
         model.quotaReceipts.removeValue(forKey: "codex")
         let devinModel = ContextDaddyModel()
         devinModel.usageReport = model.usageReport
-        devinModel.usageHistorySource = .devin
+        devinModel.usageHistoryAgents = ["devin"]
         try render(AnyView(LiveRunsView().environment(devinModel)), width: 1440, height: 900,
                    to: directory.appendingPathComponent("after-devin-history-1440.png"))
         devinModel.usageHistoryGrouping = .provider

@@ -42,14 +42,13 @@ struct FocusDeskView: View {
                     ScreenHeader(
                         eyebrow: "Account limits and local history",
                         title: "Usage",
-                        subtitle: "Codex and Claude allowances, plus Devin's separate indexed history. Live activity is in OpenTelemetry.",
+                        subtitle: "Codex and Claude allowances, plus unified local history across agents. Live activity is in OpenTelemetry.",
                         art: .telemetry,
                         hero: !compact,
                         compact: compact
                     )
 
                     UsageAllowanceView(stacked: narrowFilters)
-                    DevinUsagePanel()
                     UnifiedUsageHistoryView()
 
                     Button {
@@ -345,7 +344,7 @@ struct FocusDeskView: View {
 
     private var historySource: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(model.usageService == .devin ? "Devin · separate local source" : "ccusage \(model.usageReport?.provenance.version ?? "")")
+            Text(model.usageService == .devin ? "Devin · local session index" : "ccusage \(model.usageReport?.provenance.version ?? "")")
             if let generated = model.usageReport?.provenance.generatedAt {
                 Text("Updated \(shortTime(generated))")
             }

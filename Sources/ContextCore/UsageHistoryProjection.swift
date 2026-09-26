@@ -94,6 +94,32 @@ public struct UsageHistoryProjection: Sendable {
                 }
             }
         }
+        // Devin's deduplicated daily token counts participate in the same history.
+        // Its index does not supply verified prices or session-project identities.
+        if grouping != .project, metric != .estimatedCost,
+           agents.isEmpty || agents.contains("devin"),
+           let devin = report.devin, ["ready", "empty"].contains(devin.status) {
+            for day in devin.daily ?? [] where range.includes(day: day.period, now: now, timezone: TimeZone.current.identifier) {
+                // Prefer an existing daily-ledger entry if an upstream adapter adds Devin.
+                guard !report.daily.contains(where: { $0.period == day.period && $0.agents.contains(where: { $0.agent == "devin" }) }) else { continue }
+                let period = Self.periodKey(day.period, scale: scale)
+                let canonical = Double(max(0, metric == .generated ? day.generatedTokens : day.cacheReadTokens))
+                var attributed: [String: Double] = [:]
+                for model in day.models {
+                    let label = grouping == .provider ? ModelProviderClassifier.label(for: model.model) : model.model
+                    let id = "\(grouping == .provider ? "provider" : "model"):\(label)"
+                    labels[id] = label
+                    attributed[id, default: 0] += Double(max(0, metric == .generated ? model.generatedTokens : model.cacheReadTokens))
+                }
+                if attributed.values.reduce(0, +) > canonical { attributed.removeAll() }
+                let remainder = canonical - attributed.values.reduce(0, +)
+                if remainder > 0 { attributed["unattributed", default: 0] += remainder }
+                for (id, value) in attributed where value > 0 {
+                    grouped[period, default: [:]][id, default: 0] += value
+                    totals[id, default: 0] += value
+                }
+            }
+        }
         unattributed = totals["unattributed"] ?? 0
         total = totals.values.reduce(0, +)
         series = totals.map { id, value in
@@ -103,43 +129,12 @@ public struct UsageHistoryProjection: Sendable {
         buckets = Self.condense(grouped, scale: scale)
     }
 
-    /// Devin is a separate indexed source. It can share the chart grammar,
-    /// but never joins ccusage totals or claims project/cost attribution.
+    /// Convenience projection for a Devin-only agent selection.
     public init(devin: DevinUsage, range: UsageRange, scale: UsageChartScale,
                 grouping: UsageHistoryGrouping = .model, metric: UsageChartMetric, now: Date = Date()) {
-        self.grouping = grouping == .provider ? .provider : .model
-        self.metric = metric
-        var grouped: [String: [String: Double]] = [:]
-        var totals: [String: Double] = [:]
-        var labels: [String: String] = [:]
-        for day in devin.daily ?? [] where range.includes(day: day.period, now: now, timezone: TimeZone.current.identifier) {
-            let period = Self.periodKey(day.period, scale: scale)
-            for model in day.models {
-                let value: Double = switch metric {
-                case .generated: Double(max(0, model.generatedTokens))
-                case .cacheRead: Double(max(0, model.cacheReadTokens))
-                case .estimatedCost: 0
-                }
-                guard value > 0 else { continue }
-                let id: String
-                if self.grouping == .provider {
-                    let provider = ModelProviderClassifier.label(for: model.model)
-                    id = "provider:\(provider)"
-                    labels[id] = provider
-                } else {
-                    id = "model:\(model.model)"
-                    labels[id] = model.model
-                }
-                grouped[period, default: [:]][id, default: 0] += value
-                totals[id, default: 0] += value
-            }
-        }
-        unattributed = 0
-        total = totals.values.reduce(0, +)
-        series = totals.map { id, value in
-            UsageHistorySeries(id: id, label: labels[id] ?? id, value: value)
-        }.sorted { $0.value == $1.value ? $0.id < $1.id : $0.value > $1.value }
-        buckets = Self.condense(grouped, scale: scale)
+        self.init(report: LocalUsageReport.unavailable(message: "").withDevin(devin),
+                  agents: ["devin"], range: range, scale: scale,
+                  grouping: grouping, metric: metric, now: now)
     }
 
     private static func condense(_ grouped: [String: [String: Double]], scale: UsageChartScale) -> [UsageHistoryBucket] {
