@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 // The approved Daddy-series colors and control geometry. This source is copied
@@ -51,5 +52,27 @@ private struct DaddyControl<Label: View>: View {
             .opacity(isEnabled ? (isPressed ? 0.7 : 1) : 0.4)
             .contentShape(RoundedRectangle(cornerRadius: 7))
             .onHover { hovering = $0 }
+    }
+}
+
+// Native menu bar actions shared by the four independently packaged apps.
+// Each app owns the status and task actions between these controls.
+struct DaddyMenuOpenButton: View {
+    let appName: String
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Open \(appName)") {
+            openWindow(id: "main")
+            NSApplication.shared.activate(ignoringOtherApps: true)
+        }
+    }
+}
+
+struct DaddyMenuQuitButton: View {
+    let appName: String
+
+    var body: some View {
+        Button("Quit \(appName)") { NSApplication.shared.terminate(nil) }
     }
 }

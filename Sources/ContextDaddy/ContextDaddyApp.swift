@@ -7,7 +7,7 @@ struct ContextDaddyApp: App {
     @State private var model = ContextDaddyModel()
 
     var body: some Scene {
-        WindowGroup {
+        Window("ContextDaddy", id: "main") {
             RootView()
                 .environment(model)
                 .preferredColorScheme(.dark)
@@ -16,6 +16,11 @@ struct ContextDaddyApp: App {
         .defaultSize(width: 1180, height: 740)
         .defaultPosition(.center)
         .windowStyle(.hiddenTitleBar)
+        MenuBarExtra {
+            ContextMenu(model: model)
+        } label: {
+            Label("ContextDaddy", systemImage: "square.stack.3d.up")
+        }
     }
 }
 
@@ -40,5 +45,20 @@ final class ContextDaddyAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         NSApplication.shared.applicationIconImage = ContextDoodleArt.appIcon()
+    }
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+}
+
+private struct ContextMenu: View {
+    let model: ContextDaddyModel
+
+    var body: some View {
+        Text(model.isLoading ? "Refreshing local context…" : "Ready for local review")
+        Divider()
+        DaddyMenuOpenButton(appName: "ContextDaddy")
+        Button("Refresh Local Context") { Task { await model.refresh() } }
+            .disabled(model.isLoading)
+        Divider()
+        DaddyMenuQuitButton(appName: "ContextDaddy")
     }
 }
